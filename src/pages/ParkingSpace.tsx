@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Container, Modal, Row, Col } from 'react-bootstrap';
+import { Modal, Button } from 'react-bootstrap'; // เหลือไว้แค่ Modal กับ Button
 import OpenGateButton from '../components/OpenGateButton';
 import StreamPlayer from '../components/StreamPlayer';
 import { toast, ToastContainer } from 'react-toastify';
@@ -38,119 +38,85 @@ const ParkingSpace: React.FC = () => {
 
   return (
     <Layout>
-      <Container fluid className="p-4" style={{ backgroundColor: '#E8F0F2', minHeight: '100vh' }}>
-        <h3 className="mb-4" style={{ color: '#3A6EA5' }}>
-          <b>CAMT Live Feed - All Cameras</b>
-        </h3>
-
-        {/* 2x2 Grid */}
-        <Row className="g-3 mb-4">
-          {streams.map((stream, index) => (
-            <Col key={stream} xs={12} md={6}>
-              <div
-                className="video-container"
-                style={{
-                  backgroundColor: '#c5d8e3',
-                  borderRadius: '10px',
-                  padding: '10px',
-                  cursor: 'pointer',
-                  transition: 'transform 0.2s',
-                }}
-                onClick={() => handleVideoClick(index)}
-              >
-                <h6 className="text-center mb-2" style={{ color: '#2c4965' }}>
-                  {streamTitles[index]}
-                </h6>
-                <div
-                  style={{
-                    width: '100%',
-                    height: '250px',
-                    backgroundColor: '#a8c5d1',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    position: 'relative',
-                  }}
-                >
-                  <StreamPlayer
-                    src={`/${stream}/index.m3u8`}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      borderRadius: '8px',
-                    }}
-                    muted
-                  />
-                  <div
-                    className="click-hint"
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      backgroundColor: 'rgba(0,0,0,0.7)',
-                      color: 'white',
-                      padding: '8px 16px',
-                      borderRadius: '20px',
-                      fontSize: '14px',
-                      opacity: '0',
-                      transition: 'opacity 0.3s',
-                    }}
-                  >
-                    Click to enlarge
-                  </div>
-                </div>
-              </div>
-            </Col>
-          ))}
-        </Row>
-
-        {/* Controls */}
-        <div className="d-flex justify-content-center">
-          <OpenGateButton />
+      <div className="p-6 min-h-screen bg-gray-50">
+        
+        {/* Header Section */}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
+            <h2 className="text-2xl font-bold text-gray-800">Live Camera Feed</h2>
+          </div>
+          <div className="text-sm font-medium text-gray-500 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
+            Last updated: <span className="text-gray-800">{lastUpdated}</span>
+          </div>
         </div>
 
-        <p className="text-muted text-center mt-3" style={{ fontSize: '0.9rem' }}>
-          Last updated: {lastUpdated}
-        </p>
-
-        {/* Modal for enlarged video */}
-        <Modal show={showModal} onHide={handleCloseModal} size="xl" centered backdrop="static">
-          <Modal.Header closeButton style={{ backgroundColor: '#3A6EA5', color: 'white' }}>
-            <Modal.Title>{streamTitles[selectedStream]}</Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ backgroundColor: '#E8F0F2', padding: '20px' }}>
-            <div
-              style={{
-                width: '100%',
-                height: '500px',
-                backgroundColor: '#c5d8e3',
-                borderRadius: '10px',
-                overflow: 'hidden',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
+        {/* 2x2 Grid using Tailwind */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {streams.map((stream, index) => (
+            <div 
+              key={stream} 
+              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group cursor-pointer hover:shadow-md hover:border-blue-300 transition-all duration-300"
+              onClick={() => handleVideoClick(index)}
             >
+              {/* Card Header */}
+              <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 className="font-bold text-gray-700">{streamTitles[index]}</h3>
+                <span className="flex items-center gap-1.5 bg-red-50 text-red-600 px-2.5 py-1 rounded-md text-xs font-bold border border-red-100">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                  LIVE
+                </span>
+              </div>
+
+              {/* Video Container */}
+              <div className="relative aspect-video bg-gray-900 w-full overflow-hidden">
+                <StreamPlayer
+                  src={`/${stream}/index.m3u8`}
+                  className="w-full h-full object-cover"
+                  muted
+                />
+                
+                {/* Hover Overlay (มาแทนที่การเขียน <style> แบบเก่า) */}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <span className="bg-white/90 text-gray-900 px-4 py-2 rounded-full text-sm font-bold shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                    Click to enlarge
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Global Controls */}
+        <div className="flex justify-center mt-8">
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 inline-block">
+             <OpenGateButton />
+          </div>
+        </div>
+
+        {/* Modal for enlarged video (เก็บโครง Bootstrap ไว้ แต่ปรับสีนิดหน่อย) */}
+        <Modal show={showModal} onHide={handleCloseModal} size="xl" centered backdrop="static">
+          <Modal.Header closeButton className="border-b border-gray-100 bg-gray-50">
+            <Modal.Title className="font-bold text-gray-800 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+              {streamTitles[selectedStream]}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="bg-gray-900 p-0">
+            <div className="w-full aspect-video flex justify-center items-center">
               <StreamPlayer
                 src={`/${streams[selectedStream]}/index.m3u8`}
                 autoPlay
                 controls
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  borderRadius: '10px',
-                }}
+                className="w-full h-full object-contain"
               />
             </div>
           </Modal.Body>
-          <Modal.Footer style={{ backgroundColor: '#E8F0F2' }}>
-            <Button
-              variant="secondary"
-              onClick={handleCloseModal}
-              className="rounded-pill"
-              style={{ backgroundColor: '#c5d8e3', border: 'none', color: '#2c4965' }}
+          <Modal.Footer className="bg-gray-50 border-t border-gray-100">
+            <Button 
+              variant="light" 
+              onClick={handleCloseModal} 
+              className="font-medium text-gray-600 bg-white border border-gray-300 hover:bg-gray-100"
             >
               Close
             </Button>
@@ -159,16 +125,7 @@ const ParkingSpace: React.FC = () => {
         </Modal>
 
         <ToastContainer />
-
-        <style>{`
-          .video-container:hover .click-hint {
-            opacity: 1 !important;
-          }
-          .video-container:hover {
-            transform: scale(1.02);
-          }
-        `}</style>
-      </Container>
+      </div>
     </Layout>
   );
 };
