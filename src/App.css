@@ -1,8 +1,1 @@
-.custom-toast-center {
-  margin: 0 auto;
-  text-align: center;
-  background-color: #d1e9ff;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-  width: fit-content;
-}
+@import "tailwindcss";
