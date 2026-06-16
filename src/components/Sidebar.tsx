@@ -1,19 +1,11 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
-  Shield, 
-  Video, 
-  IdCard, 
-  BookOpen, 
-  UserCheck, 
   LogOut, 
   Landmark,
   X,
-  Activity,    
-  BarChart,
-  Map // <-- เพิ่มไอคอน Map สำหรับ Lot Management
 } from 'lucide-react';
+import { navigationItems } from '../config/navigation';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -29,81 +21,81 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     navigate('/');
   };
 
-  const menuItems = [
-    { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
-    // 👇 เพิ่ม Lot Management เข้ามาตรงนี้ 👇
-    { name: 'Lot Management', icon: <Map size={20} />, path: '/lot-management' },
-    { name: 'Live Camera', icon: <Video size={20} />, path: '/parking-space' },
-    { name: 'System Health', icon: <Activity size={20} />, path: '/system-health' },
-    { name: 'Weekly Reports', icon: <BarChart size={20} />, path: '/reports' },
-    { name: 'Licence Plate', icon: <IdCard size={20} />, path: '/licence-plate' },
-    { name: 'Entry Records', icon: <BookOpen size={20} />, path: '/entry-records' },
-    { name: 'Auth Requests', icon: <UserCheck size={20} />, path: '/auth-requests' },
-    { name: 'Admin Profile', icon: <Shield size={20} />, path: '/admin-profile' },
-  ];
+  const groups = [
+    { id: 'operations', label: 'Operations' },
+    { id: 'records', label: 'Records' },
+    { id: 'access', label: 'Access' },
+  ] as const;
 
   return (
     <>
-      {/* Overlay สำหรับตอนเปิดบนมือถือ */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-gray-900/50 z-40 md:hidden" 
+          className="fixed inset-0 z-40 bg-slate-950/45 md:hidden" 
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* แถบ Sidebar */}
-      <aside className={`fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col justify-between z-50 transition-transform duration-300 ease-in-out ${
+      <aside className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col justify-between border-r border-[var(--pp-line)] bg-white transition-transform duration-200 ease-out ${
         isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
         
         <div>
-          {/* Logo & หัว Sidebar */}
-          <div className="h-20 flex items-center justify-between px-6 border-b border-gray-100">
+          <div className="flex h-18 items-center justify-between border-b border-[var(--pp-line)] px-5 py-4">
             <div className="flex items-center gap-3">
-              <div className="bg-blue-900 p-2 rounded-lg">
-                <Landmark className="text-white" size={24} />
+              <div className="rounded-[var(--pp-radius)] bg-[var(--pp-blue-deep)] p-2">
+                <Landmark className="text-white" size={22} />
               </div>
               <div>
-                <h1 className="font-bold text-gray-900 leading-tight">ParkPilot</h1>
-                <p className="text-xs text-gray-500 font-medium">CAMT EXCELLENCE</p>
+                <h1 className="text-base font-bold leading-tight text-[var(--pp-ink)]">ParkPilot</h1>
+                <p className="text-xs font-medium text-[var(--pp-muted)]">CAMT Field Ops</p>
               </div>
             </div>
-            {/* ปุ่มปิดบนมือถือ */}
-            <button className="md:hidden text-gray-500 hover:text-red-500" onClick={() => setIsOpen(false)}>
-              <X size={24} />
+            <button
+              className="rounded-[var(--pp-radius)] p-2 text-[var(--pp-muted)] hover:bg-[var(--pp-surface-muted)] hover:text-[var(--pp-ink)] md:hidden"
+              onClick={() => setIsOpen(false)}
+              aria-label="Close navigation"
+            >
+              <X size={20} />
             </button>
           </div>
 
-          {/* เมนูนำทาง (Nav Links) */}
-          <nav className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-160px)]">
-            {menuItems.map((item) => (
-              <NavLink
-                key={item.name}
-                to={item.path}
-                onClick={() => setIsOpen(false)} 
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium ${
-                    isActive 
-                      ? 'bg-blue-50 text-blue-700 border border-blue-100' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`
-                }
-              >
-                {item.icon}
-                {item.name}
-              </NavLink>
+          <nav className="max-h-[calc(100vh-154px)] overflow-y-auto p-3" aria-label="Admin navigation">
+            {groups.map((group) => (
+              <div key={group.id} className="mb-4 last:mb-0">
+                <p className="px-3 pb-1 text-xs font-semibold text-[var(--pp-muted)]">{group.label}</p>
+                <div className="space-y-1">
+                  {navigationItems
+                    .filter((item) => item.group === group.id)
+                    .map((item) => (
+                      <NavLink
+                        key={item.name}
+                        to={item.path}
+                        onClick={() => setIsOpen(false)}
+                        className={({ isActive }) =>
+                          `flex min-h-10 items-center gap-3 rounded-[var(--pp-radius)] px-3 py-2 text-sm font-semibold transition-colors ${
+                            isActive
+                              ? 'border border-[#b7d0eb] bg-[var(--pp-blue-soft)] text-[var(--pp-blue-deep)]'
+                              : 'text-[var(--pp-muted)] hover:bg-[var(--pp-surface-muted)] hover:text-[var(--pp-ink)]'
+                          }`
+                        }
+                      >
+                        {item.icon}
+                        <span>{item.name}</span>
+                      </NavLink>
+                    ))}
+                </div>
+              </div>
             ))}
           </nav>
         </div>
 
-        {/* ปุ่ม Logout ด้านล่างสุด */}
-        <div className="p-4 border-t border-gray-100 bg-white">
+        <div className="border-t border-[var(--pp-line)] bg-white p-3">
           <button 
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 font-medium transition-colors"
+            className="flex min-h-10 w-full items-center gap-3 rounded-[var(--pp-radius)] px-3 py-2 text-sm font-semibold text-[var(--pp-muted)] transition-colors hover:bg-[var(--pp-danger-soft)] hover:text-[var(--pp-danger)]"
           >
-            <LogOut size={20} />
+            <LogOut size={18} />
             Logout
           </button>
         </div>

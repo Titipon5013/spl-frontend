@@ -1,18 +1,13 @@
 import React from 'react';
-import Sidebar from './Sidebar';
-import '../style/Layout.css';
+import MainLayout from './MainLayout';
 
 interface LayoutProps {
   children: React.ReactNode;
+  pageTitle?: string;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
-  return (
-    <div className="layout">
-      <Sidebar />
-      <main className="content">{children}</main>
-    </div>
-  );
-};
+const Layout: React.FC<LayoutProps> = ({ children, pageTitle = 'ParkPilot' }) => (
+  <MainLayout pageTitle={pageTitle}>{children}</MainLayout>
+);
 
 export default Layout;
