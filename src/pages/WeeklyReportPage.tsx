@@ -69,10 +69,20 @@ const WeeklyReportPage: React.FC = () => {
         setUptime(resHealth.data.uptime_percentage || 0);
       }
 
-      // 💡 พื้นที่สำหรับดึงข้อมูล Avg Entries และ Turnover ในอนาคต
-      // const summaryRes = await axiosInstance.get('/analytics/weekly-summary');
-      // setAvgEntries(summaryRes.data.avg_entries);
-      // setAvgTurnover(summaryRes.data.avg_turnover);
+      const kpiRes = await axiosInstance
+        .get('/analytics/kpis', {
+          params: {
+            lot_id: 'CAMT_01',
+            start_date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+          },
+        })
+        .catch(() => ({ data: null }));
+
+      if (kpiRes.data) {
+        setAvgEntries(kpiRes.data.vehicle_count);
+        setAvgTurnover(kpiRes.data.avg_dwell_time_minutes);
+      }
 
     } catch (error) {
       console.error("Error fetching weekly data:", error);
