@@ -48,21 +48,21 @@ const Register: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       
       {/* Navbar สไตล์ ParkPilot (เหมือนหน้า Home) */}
-      <nav className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm sticky top-0 z-50">
+      <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-[var(--pp-line)] bg-white px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-900 p-2 rounded-lg">
+          <div className="rounded-[var(--pp-radius)] bg-[var(--pp-blue-deep)] p-2">
             <Landmark className="text-white" size={24} />
           </div>
           <div>
             <h1 className="font-extrabold text-xl text-gray-900 leading-none">ParkPilot</h1>
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Public Portal</p>
+            <p className="mt-0.5 text-xs font-medium text-[var(--pp-muted)]">Public Portal</p>
           </div>
         </div>
         <div className="flex items-center gap-6">
-          <Link to="/" className="text-sm font-bold text-gray-500 hover:text-blue-900 transition-colors">
+          <Link to="/" className="text-sm font-bold text-[var(--pp-muted)] transition-colors hover:text-[var(--pp-blue)]">
             Home
           </Link>
-          <Link to="/login" className="text-sm font-bold bg-blue-50 text-blue-800 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors">
+          <Link to="/login" className="rounded-[var(--pp-radius)] bg-[var(--pp-blue-soft)] px-4 py-2 text-sm font-bold text-[var(--pp-blue-deep)] transition-colors hover:bg-[#d9e9f8]">
             Admin Login
           </Link>
         </div>
@@ -71,7 +71,7 @@ const Register: React.FC = () => {
       {/* Main Form Content */}
       <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8 flex justify-center items-center">
         
-        <div className="bg-white w-full max-w-4xl rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+        <div className="w-full max-w-4xl overflow-hidden rounded-[var(--pp-radius)] border border-[var(--pp-line)] bg-white">
           <div className="grid grid-cols-1 lg:grid-cols-2">
             
             {/* Left Column: Form Inputs */}
@@ -88,14 +88,14 @@ const Register: React.FC = () => {
                 {/* Email Input */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
-                  <div className="relative rounded-xl shadow-sm">
+                  <div className="relative rounded-[var(--pp-radius)]">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Mail className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
                       type="email"
                       required
-                      className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors sm:text-sm"
+                      className="block w-full rounded-[var(--pp-radius)] border border-[var(--pp-line)] bg-white py-3 pl-10 pr-3 text-gray-900 placeholder:text-[var(--pp-muted)] transition-colors focus:border-[var(--pp-blue)] focus:outline-none focus:ring-2 focus:ring-[var(--pp-blue)]/20 sm:text-sm"
                       placeholder="e.g. user@student.cmu.ac.th"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -106,14 +106,14 @@ const Register: React.FC = () => {
                 {/* Name Input */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Full Name</label>
-                  <div className="relative rounded-xl shadow-sm">
+                  <div className="relative rounded-[var(--pp-radius)]">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <User className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
                       type="text"
                       required
-                      className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors sm:text-sm"
+                      className="block w-full rounded-[var(--pp-radius)] border border-[var(--pp-line)] bg-white py-3 pl-10 pr-3 text-gray-900 placeholder:text-[var(--pp-muted)] transition-colors focus:border-[var(--pp-blue)] focus:outline-none focus:ring-2 focus:ring-[var(--pp-blue)]/20 sm:text-sm"
                       placeholder="e.g. John Doe"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
@@ -124,14 +124,14 @@ const Register: React.FC = () => {
                 {/* License Plate Input */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">License Plate Number</label>
-                  <div className="relative rounded-xl shadow-sm">
+                  <div className="relative rounded-[var(--pp-radius)]">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Car className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
                       type="text"
                       required
-                      className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors uppercase sm:text-sm"
+                      className="block w-full rounded-[var(--pp-radius)] border border-[var(--pp-line)] bg-white py-3 pl-10 pr-3 text-gray-900 placeholder:text-[var(--pp-muted)] transition-colors focus:border-[var(--pp-blue)] focus:outline-none focus:ring-2 focus:ring-[var(--pp-blue)]/20 uppercase sm:text-sm"
                       placeholder="e.g. กข 1234"
                       value={plateNumber}
                       onChange={(e) => setPlateNumber(e.target.value)}
@@ -151,7 +151,7 @@ const Register: React.FC = () => {
                 
                 <label 
                   htmlFor="photo" 
-                  className={`w-full h-48 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all ${
+                  className={`flex h-48 w-full cursor-pointer flex-col items-center justify-center rounded-[var(--pp-radius)] border-2 border-dashed transition-all ${
                     photo ? 'border-emerald-500 bg-emerald-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
                   }`}
                 >
@@ -182,7 +182,7 @@ const Register: React.FC = () => {
                 <button
                   type="submit"
                   form="register-form"
-                  className="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-blue-900 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-900 transition-all transform active:scale-[0.98]"
+                  className="flex w-full items-center justify-center rounded-[var(--pp-radius)] border border-transparent bg-[var(--pp-blue)] px-4 py-4 text-sm font-bold text-white transition-colors hover:bg-[var(--pp-blue-deep)] focus:outline-none focus:ring-2 focus:ring-[var(--pp-blue)] focus:ring-offset-2"
                 >
                   Submit Registration
                 </button>

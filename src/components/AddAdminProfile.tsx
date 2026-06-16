@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Form, Button, Container } from 'react-bootstrap';
+import { Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
 import Layout from '../components/Layout';
+import { Button, PageHeader, Panel } from './ui';
 
 const AddAdminProfile: React.FC = () => {
   const navigate = useNavigate();
@@ -11,13 +12,12 @@ const AddAdminProfile: React.FC = () => {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('operator');
   const [emailError, setEmailError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const validateEmail = (email: string) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(String(email).toLowerCase());
-  };
+  const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.toLowerCase());
 
-  const handleRegister = async () => {
+  const handleRegister = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!validateEmail(email)) {
       setEmailError('Invalid email format.');
       return;
@@ -25,100 +25,80 @@ const AddAdminProfile: React.FC = () => {
     setEmailError('');
 
     try {
-      const payload = {
+      setSaving(true);
+      await axios.post('/admins', {
         username: name,
-        email: email,
-        password: password,
-        role: role,
-      };
-
-      await axios.post('/admins', payload);
+        email,
+        password,
+        role,
+      });
       navigate('/admin-profile');
     } catch (error: any) {
-      if (error.response) {
-        alert(error.response.data.detail || 'Error creating admin.');
-      } else {
-        alert('Network error or server not responding.');
-      }
+      window.alert(error.response?.data?.detail || 'Error creating admin.');
       console.error(error);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <Layout>
-      <Container
-        fluid
-        className="d-flex flex-column align-items-center justify-content-center"
-        style={{ minHeight: '100vh', backgroundColor: '#E8F0F2' }}
-      >
-        <h2 className="mb-4" style={{ color: '#3A6EA5' }}>
-          Admin Profile
-        </h2>
-        <Form style={{ width: '300px' }}>
-          <Form.Group className="mb-3">
-            <Form.Control
-              type="email"
-              placeholder="Email"
-              className="text-center bg-light border-0 rounded-pill"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (emailError) {
-                  setEmailError('');
-                }
-              }}
-              isInvalid={!!emailError}
-            />
-            <Form.Control.Feedback type="invalid">
-              {emailError}
-            </Form.Control.Feedback>
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Control
-              type="text"
-              placeholder="Name"
-              className="text-center bg-light border-0 rounded-pill"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </Form.Group>
-
-          <Form.Group className="mb-4">
-            <Form.Control
-              type="password"
-              placeholder="Password"
-              className="text-center bg-light border-0 rounded-pill"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </Form.Group>
-
-          <Form.Group className="mb-4">
-            <Form.Select
-              className="text-center bg-light border-0 rounded-pill"
+    <Layout pageTitle="Add Admin">
+      <PageHeader
+        title="Add Admin Profile"
+        description="Create a local administrator profile and assign dashboard role."
+      />
+      <Panel className="max-w-xl p-5">
+        <form onSubmit={handleRegister} className="space-y-4">
+          <Field
+            label="Email"
+            type="email"
+            value={email}
+            error={emailError}
+            onChange={(value) => {
+              setEmail(value);
+              if (emailError) setEmailError('');
+            }}
+          />
+          <Field label="Name" value={name} onChange={setName} />
+          <Field label="Password" type="password" value={password} onChange={setPassword} />
+          <label className="block text-sm font-semibold text-[var(--pp-ink)]">
+            Role
+            <select
               value={role}
-              onChange={(e) => setRole(e.target.value)}
+              onChange={(event) => setRole(event.target.value)}
+              className="mt-1 block min-h-10 w-full rounded-[var(--pp-radius)] border border-[var(--pp-line)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--pp-blue)] focus:ring-2 focus:ring-[var(--pp-blue)]/20"
             >
               <option value="admin">Admin</option>
               <option value="operator">Operator</option>
-            </Form.Select>
-          </Form.Group>
-
-          <div className="d-grid">
-            <Button
-              variant="primary"
-              className="rounded-pill"
-              style={{ backgroundColor: '#aac9dd', border: 'none' }}
-              onClick={handleRegister}
-            >
-              Register
-            </Button>
-          </div>
-        </Form>
-      </Container>
+            </select>
+          </label>
+          <Button type="submit" loading={saving}>
+            <Save size={16} /> Create admin
+          </Button>
+        </form>
+      </Panel>
     </Layout>
   );
 };
+
+const Field: React.FC<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  error?: string;
+}> = ({ label, value, onChange, type = 'text', error }) => (
+  <label className="block text-sm font-semibold text-[var(--pp-ink)]">
+    {label}
+    <input
+      type={type}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      required
+      className="mt-1 block min-h-10 w-full rounded-[var(--pp-radius)] border border-[var(--pp-line)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--pp-blue)] focus:ring-2 focus:ring-[var(--pp-blue)]/20"
+    />
+    {error && <span className="mt-1 block text-xs font-semibold text-[var(--pp-danger)]">{error}</span>}
+  </label>
+);
 
 export default AddAdminProfile;
