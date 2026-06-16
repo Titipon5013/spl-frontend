@@ -30,19 +30,34 @@ const SystemHealthPage: React.FC = () => {
   // ตัวแปรเช็คสถานะเพื่อปรับสี UI
   const isHealthy = healthData?.system_status === "Healthy";
   const boardOnline = healthData?.board?.status === "online";
-  const cam1Online = healthData?.camera_1?.status === "online";
-  const cam2Online = healthData?.camera_2?.status === "online";
-  const activeCameras = (cam1Online ? 1 : 0) + (cam2Online ? 1 : 0);
+  const cameraNodes = [
+    { key: 'camera_1', label: 'Parking Area 1', ip: 'parking/index.m3u8' },
+    { key: 'camera_2', label: 'Parking Area 2', ip: 'parking2/index.m3u8' },
+    { key: 'camera_3', label: 'License Check 1', ip: 'license/index.m3u8' },
+    { key: 'camera_4', label: 'License Check 2', ip: 'license1/index.m3u8' },
+  ].map((camera) => ({
+    ...camera,
+    online: healthData?.[camera.key]?.status === "online",
+    status: healthData?.[camera.key]?.status || "unknown",
+  }));
+  const activeCameras = cameraNodes.filter((camera) => camera.online).length;
 
-  // Mock ข้อมูล Log สำหรับหน้าจอ Terminal สีดำ
-  const mockLogs = [
-    { time: '11:50:01', level: 'INFO', message: 'Handshake established with MQTT Broker (localhost:1883)' },
-    { time: '11:50:05', level: 'SUCCESS', message: 'Subscribed to topic: test/parking' },
-    { time: '11:51:12', level: 'MSG', message: 'Payload received on test/parking: {"available_spaces": 39, "occupied_spaces": 2}' },
-    { time: '11:51:12', level: 'DB', message: 'INSERT INTO parking_snapshots SUCCESS (0.0007s)' },
-    { time: '11:52:16', level: 'WARN', message: 'Latency spike detected on Camera 1 subnet (85ms).' },
-    { time: '11:53:20', level: 'DB', message: 'Heartbeat updated for orange_pi_main' }
-  ];
+  const buildHealthLogs = () => {
+    if (!healthData) return [];
+    const now = new Date().toLocaleTimeString();
+    return [
+      { time: now, level: 'INFO', message: `System status: ${healthData.system_status}` },
+      { time: now, level: healthData.board?.status === 'online' ? 'SUCCESS' : 'WARN', message: `Orange Pi board is ${healthData.board?.status || 'unknown'}` },
+      ...cameraNodes.map((camera) => ({
+        time: now,
+        level: camera.online ? 'SUCCESS' : 'WARN',
+        message: `${camera.label} is ${camera.status}`,
+      })),
+      { time: now, level: 'DB', message: `Uptime score: ${healthData.uptime_percentage}%` },
+    ];
+  };
+
+  const healthLogs = buildHealthLogs();
 
   return (
     <MainLayout pageTitle="System Health">
@@ -74,11 +89,11 @@ const SystemHealthPage: React.FC = () => {
           />
           <StatCard 
             title="Active Cameras" 
-            value={`${activeCameras} / 2`} 
+            value={`${activeCameras} / 4`} 
             icon={<Video size={18} />} 
-            subtitle="YOLOv8 Vision Nodes" 
-            trend={activeCameras === 2 ? "Stable" : "Warning"}
-            trendUp={activeCameras === 2}
+            subtitle="Connected Camera Streams" 
+            trend={activeCameras === 4 ? "Stable" : "Warning"}
+            trendUp={activeCameras === 4}
           />
           <StatCard 
             title="Server Uptime" 
@@ -96,28 +111,25 @@ const SystemHealthPage: React.FC = () => {
           <div className="lg:col-span-2 space-y-6">
             
             {/* Terminal Window */}
-            <SystemHealthPanel logs={mockLogs as any} />
+            <SystemHealthPanel logs={healthLogs as any} />
 
-            {/* --- 🌟 Topology View: จำลองฮาร์ดแวร์จริง 1 บอร์ด 2 กล้อง --- */}
+            {/* Hardware topology for the four connected camera streams. */}
             <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm relative">
               <h3 className="text-sm font-bold text-gray-400 mb-6 uppercase tracking-wider absolute top-4 left-4">Hardware Topology</h3>
               
-              <div className="flex flex-col md:flex-row justify-center items-center gap-4 md:gap-12 mt-8">
-                
-                {/* กล้องตัวซ้าย (Camera 1) */}
-                <div className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${cam1Online ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50 opacity-70'}`}>
-                  {cam1Online ? <CheckCircle2 size={20} className="text-emerald-500 mb-2" /> : <XCircle size={20} className="text-red-500 mb-2" />}
-                  <Video size={32} className={cam1Online ? 'text-gray-800' : 'text-gray-400'} />
-                  <p className="font-bold mt-2 text-sm">Camera 01</p>
-                  <p className="text-xs text-gray-500 font-mono">192.168.1.10</p>
+              <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto_1fr] gap-6 items-center mt-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {cameraNodes.slice(0, 2).map((camera, index) => (
+                    <div key={camera.key} className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${camera.online ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50 opacity-70'}`}>
+                      {camera.online ? <CheckCircle2 size={20} className="text-emerald-500 mb-2" /> : <XCircle size={20} className="text-red-500 mb-2" />}
+                      <Video size={32} className={camera.online ? 'text-gray-800' : 'text-gray-400'} />
+                      <p className="font-bold mt-2 text-sm">{camera.label}</p>
+                      <p className="text-xs text-gray-500 font-mono">Camera 0{index + 1}</p>
+                      <p className="text-[10px] text-gray-400 font-mono mt-1">{camera.ip}</p>
+                    </div>
+                  ))}
                 </div>
 
-                {/* เส้นเชื่อมโยง (ซ้าย) */}
-                <div className="hidden md:flex flex-1 h-1 bg-gray-200 relative">
-                  <div className={`absolute top-0 left-0 h-full w-full ${cam1Online ? 'bg-emerald-400 animate-pulse' : 'bg-red-300'}`}></div>
-                </div>
-
-                {/* ตัวกระจายสัญญาณกลาง (Orange Pi) */}
                 <div className={`flex flex-col items-center p-6 rounded-2xl shadow-md border-2 z-10 bg-white ${boardOnline ? 'border-blue-500' : 'border-red-500'}`}>
                   <div className={`p-3 rounded-full mb-2 ${boardOnline ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>
                     <Zap size={32} />
@@ -127,17 +139,16 @@ const SystemHealthPage: React.FC = () => {
                   <p className="text-xs text-gray-400 font-mono mt-2">{loading ? "..." : (boardOnline ? "Transmitting..." : "Connection Lost")}</p>
                 </div>
 
-                {/* เส้นเชื่อมโยง (ขวา) */}
-                <div className="hidden md:flex flex-1 h-1 bg-gray-200 relative">
-                  <div className={`absolute top-0 left-0 h-full w-full ${cam2Online ? 'bg-emerald-400 animate-pulse' : 'bg-red-300'}`}></div>
-                </div>
-
-                {/* กล้องตัวขวา (Camera 2) */}
-                <div className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${cam2Online ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50 opacity-70'}`}>
-                  {cam2Online ? <CheckCircle2 size={20} className="text-emerald-500 mb-2" /> : <XCircle size={20} className="text-red-500 mb-2" />}
-                  <Video size={32} className={cam2Online ? 'text-gray-800' : 'text-gray-400'} />
-                  <p className="font-bold mt-2 text-sm">Camera 02</p>
-                  <p className="text-xs text-gray-500 font-mono">192.168.1.11</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {cameraNodes.slice(2).map((camera, index) => (
+                    <div key={camera.key} className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${camera.online ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50 opacity-70'}`}>
+                      {camera.online ? <CheckCircle2 size={20} className="text-emerald-500 mb-2" /> : <XCircle size={20} className="text-red-500 mb-2" />}
+                      <Video size={32} className={camera.online ? 'text-gray-800' : 'text-gray-400'} />
+                      <p className="font-bold mt-2 text-sm">{camera.label}</p>
+                      <p className="text-xs text-gray-500 font-mono">Camera 0{index + 3}</p>
+                      <p className="text-[10px] text-gray-400 font-mono mt-1">{camera.ip}</p>
+                    </div>
+                  ))}
                 </div>
 
               </div>
@@ -163,7 +174,7 @@ const SystemHealthPage: React.FC = () => {
                 </div>
               )}
 
-              {(!cam1Online || !cam2Online) && boardOnline && (
+              {activeCameras < 4 && boardOnline && (
                 <div className="border-l-4 border-yellow-500 pl-3 py-1">
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-xs font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded">HARDWARE ALERT</span>
