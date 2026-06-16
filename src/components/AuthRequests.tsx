@@ -21,22 +21,24 @@ const AuthRequests: React.FC = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      // 💡 ปรับ URL ให้ตรงกับ Endpoint ของ FastAPI (เช่น /admin หรือ /auth/users)
-      const response = await axiosInstance.get('/admin'); 
-      
-      // ดึงข้อมูล array ออกมา (ขึ้นอยู่กับว่า Backend หุ้ม key ไว้ไหม เช่น response.data.items)
-      const data = response.data.items || response.data;
+      // ปรับ URL ให้ตรงกับ Endpoint ของ FastAPI (เช่น /admin หรือ /auth/users)
+      const response = await axiosInstance.get('/admin-access/requests');
+      const data = response.data;
 
-      // Map ข้อมูลจาก Backend ให้เข้ากับ Interface ของ Frontend
       const formattedData = data.map((admin: any) => ({
         id: admin.id,
-        name: admin.name || "Unknown User",
+        name: admin.name || 'Unknown User',
         email: admin.email,
-        // ถ้า Backend ไม่มีรูป ให้สร้าง Avatar อัตโนมัติจากชื่อ
-        avatar: admin.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(admin.name || admin.email)}&background=0D8ABC&color=fff`,
+        avatar:
+          admin.avatar ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(admin.name || admin.email)}&background=0D8ABC&color=fff`,
         status: admin.status || 'pending',
-        // จัดฟอร์แมตเวลาให้น่าอ่าน
-        requestDate: admin.created_at ? new Date(admin.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'
+        requestDate: admin.created_at
+          ? new Date(admin.created_at).toLocaleString('en-US', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })
+          : 'N/A',
       }));
 
       setRequests(formattedData);
@@ -61,9 +63,9 @@ const AuthRequests: React.FC = () => {
     }
 
     try {
-      // ✅ ส่งคำสั่งเปลี่ยน Status ไปที่ Backend
-      // 💡 ปรับ URL ให้ตรงกับ Endpoint การอัปเดตข้อมูล Admin (อ้างอิงจาก AdminUpdate schema)
-      await axiosInstance.put(`/admin/${id}`, { status: newStatus });
+      //  ส่งคำสั่งเปลี่ยน Status ไปที่ Backend
+      //  ปรับ URL ให้ตรงกับ Endpoint การอัปเดตข้อมูล Admin (อ้างอิงจาก AdminUpdate schema)
+      await axiosInstance.put(`/admin-access/requests/${id}`, { status: newStatus });
 
       // แจ้งเตือนการทำงานอัตโนมัติตาม Feature 5
       if (newStatus === 'approved') {
