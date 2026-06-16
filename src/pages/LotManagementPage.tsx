@@ -1,22 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Clock, MapPin, RefreshCcw, X } from 'lucide-react';
+import axiosInstance from '../api/axios';
+import LiveEventFeed from '../components/LiveEventFeed';
 import MainLayout from '../components/MainLayout';
 import SpatialHeatmap from '../components/SpatialHeatmap';
-import LiveEventFeed from '../components/LiveEventFeed';
-import { Maximize2, MapPin, X } from 'lucide-react';
-import axiosInstance from '../api/axios';
+import { Button, EmptyState, PageHeader, Panel, SelectField, StatusBadge, Toolbar } from '../components/ui';
+import type { ParkingLotId, ParkingSnapshot, ParkingSpot } from '../types/parking';
+
+const lotOptions: Array<{ value: ParkingLotId; label: string }> = [
+  { value: 'CAMT_01', label: 'CAMT_01 - Front lot' },
+  { value: 'CAMT_02', label: 'CAMT_02 - Rear lot' },
+];
 
 const LotManagementPage: React.FC = () => {
-  const [parkingSpots, setParkingSpots] = useState<any[]>([]);
-  const [camt01Data, setCamt01Data] = useState<any>(null);
-  const [camt02Data, setCamt02Data] = useState<any>(null);
+  const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
+  const [camt01Data, setCamt01Data] = useState<ParkingSnapshot | null>(null);
+  const [camt02Data, setCamt02Data] = useState<ParkingSnapshot | null>(null);
   const [liveEvents, setLiveEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedSpot, setSelectedSpot] = useState<string | null>(null);
   const [slotHistory, setSlotHistory] = useState<any[]>([]);
-  const [lotFilter, setLotFilter] = useState('CAMT_02');
+  const [lotFilter, setLotFilter] = useState<ParkingLotId>('CAMT_02');
+  const [lastSync, setLastSync] = useState<string>('Not synced');
 
   const fetchParkingData = async () => {
     try {
+      setError(null);
       const [res01, res02, resHeatmap] = await Promise.all([
         axiosInstance.get('/analytics/current?lot_id=CAMT_01'),
         axiosInstance.get('/analytics/current?lot_id=CAMT_02'),
@@ -25,17 +35,19 @@ const LotManagementPage: React.FC = () => {
 
       setCamt01Data(res01.data);
       setCamt02Data(res02.data);
+      setLastSync(new Date().toLocaleTimeString());
 
-      if (resHeatmap.data?.spots) {
-        const mappedSpots = resHeatmap.data.spots.map((spot: any) => ({
+      const spots = resHeatmap.data?.spots || [];
+      setParkingSpots(
+        spots.map((spot: any) => ({
           id: spot.spot_id,
           status: spot.occupancy_percentage > 50 ? 'occupied' : 'available',
           heatRate: spot.occupancy_percentage,
-        }));
-        setParkingSpots(mappedSpots);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
+        }))
+      );
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Lot data is unavailable. The map will recover when the analytics API responds.');
     } finally {
       setLoading(false);
     }
@@ -55,8 +67,8 @@ const LotManagementPage: React.FC = () => {
           time: new Date(event.timestamp).toLocaleTimeString(),
         }))
       );
-    } catch (error) {
-      console.error('Error fetching slot history:', error);
+    } catch (err) {
+      console.error('Error fetching slot history:', err);
       setSlotHistory([]);
     }
   };
@@ -72,124 +84,117 @@ const LotManagementPage: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [lotFilter]);
 
+  const currentLotData = lotFilter === 'CAMT_01' ? camt01Data : camt02Data;
+  const occupied = currentLotData?.occupied_spaces || 0;
+  const total = currentLotData?.total_spaces || 0;
+  const available = currentLotData?.available_spaces || 0;
+
   return (
     <MainLayout pageTitle="Lot Management">
-      <div className="flex justify-between items-end mb-6">
-        <div>
-          <h2 className="text-xl font-bold text-gray-800">Spatial Lot View</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Real-time individual space monitoring. Click a slot to view event history.
-          </p>
-        </div>
-        <select
+      <PageHeader
+        title="Spatial Lot Operations"
+        description="Monitor individual parking spots, inspect recent state changes, and keep the map aligned with live occupancy."
+        actions={<StatusBadge tone={error ? 'warning' : 'success'} pulse>{error ? 'Degraded' : 'Live'}</StatusBadge>}
+      />
+
+      <Toolbar>
+        <SelectField
+          label="Parking lot"
           value={lotFilter}
-          onChange={(e) => setLotFilter(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold"
-        >
-          <option value="CAMT_01">CAMT_01 (Front)</option>
-          <option value="CAMT_02">CAMT_02 (Rear)</option>
-        </select>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-            <div className="flex items-center gap-2">
-              <MapPin
-                size={18}
-                className={loading ? 'text-gray-400' : 'text-emerald-500 animate-pulse'}
-              />
-              <h3 className="font-bold text-gray-800">{lotFilter}</h3>
-            </div>
-            <button className="text-gray-400 hover:text-gray-600">
-              <Maximize2 size={18} />
-            </button>
-          </div>
-
-          <div onClick={(e) => {
-            const target = e.target as HTMLElement;
-            const spotEl = target.closest('[data-spot-id]');
-            if (spotEl) {
-              handleSpotSelect(spotEl.getAttribute('data-spot-id') || '');
-            }
-          }}>
-            <SpatialHeatmap spots={parkingSpots} mode="occupancy" />
-          </div>
-
-          <div className="p-4 bg-white border-t border-gray-100 flex flex-wrap gap-2">
-            {parkingSpots.map((spot) => (
-              <button
-                key={spot.id}
-                data-spot-id={spot.id}
-                onClick={() => handleSpotSelect(spot.id)}
-                className={`px-3 py-1 rounded-lg text-xs font-bold border ${
-                  selectedSpot === spot.id
-                    ? 'bg-blue-900 text-white border-blue-900'
-                    : 'bg-gray-50 text-gray-700 border-gray-200'
-                }`}
-              >
-                {spot.id}
-              </button>
-            ))}
-          </div>
+          onChange={(value) => {
+            setLotFilter(value as ParkingLotId);
+            setSelectedSpot(null);
+            setSlotHistory([]);
+          }}
+          options={lotOptions}
+        />
+        <div className="flex items-center gap-2 text-sm text-[var(--pp-muted)]">
+          <RefreshCcw size={16} />
+          <span>Refresh 5s · Last sync {lastSync}</span>
         </div>
+      </Toolbar>
 
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Zone Intelligence</h3>
-            <div className="p-4 border border-emerald-200 bg-emerald-50 rounded-lg mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-bold text-gray-900">CAMT_02 (Rear)</span>
-                <span className="text-xs font-bold bg-emerald-200 text-emerald-800 px-2 py-1 rounded">
-                  LIVE
-                </span>
+      {error && <div className="mb-5"><EmptyState title="Lot data is temporarily unavailable" description={error} tone="warning" /></div>}
+
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[1fr_360px]">
+        <Panel className="overflow-hidden">
+          <div className="flex flex-col gap-3 border-b border-[var(--pp-line)] bg-white p-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-2">
+              <MapPin size={18} className={loading ? 'text-[var(--pp-muted)]' : 'text-[var(--pp-success)]'} />
+              <div>
+                <h2 className="text-base font-bold text-[var(--pp-ink)]">{lotFilter}</h2>
+                <p className="text-sm text-[var(--pp-muted)]">Operational layout approximation from current spot data.</p>
               </div>
-              <p className="text-sm text-gray-600 mb-2">
-                {loading ? '...' : camt02Data?.total_spaces || 0} Spaces Total
-              </p>
             </div>
-            <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-bold text-gray-900">CAMT_01 (Front)</span>
-                <span className="text-xs font-bold bg-yellow-200 text-yellow-800 px-2 py-1 rounded">
-                  LIVE
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 mb-2">
-                {loading ? '...' : camt01Data?.total_spaces || 0} Spaces Total
-              </p>
+            <div className="flex flex-wrap gap-2">
+              <StatusBadge tone="success">{available} available</StatusBadge>
+              <StatusBadge tone="danger">{occupied} occupied</StatusBadge>
+              <StatusBadge tone="neutral">{total} total</StatusBadge>
             </div>
           </div>
 
-          {selectedSpot && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-800">
-                  Slot {selectedSpot} History
-                </h3>
-                <button onClick={() => setSelectedSpot(null)} className="text-gray-400 hover:text-gray-600">
-                  <X size={18} />
-                </button>
-              </div>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {slotHistory.length === 0 ? (
-                  <p className="text-sm text-gray-500">No events recorded for this slot.</p>
-                ) : (
-                  slotHistory.map((event) => (
-                    <div
-                      key={event.event_id}
-                      className="flex justify-between text-sm border-b border-gray-100 py-2"
-                    >
-                      <span className="font-bold capitalize">{event.state}</span>
-                      <span className="text-gray-500">
-                        {new Date(event.timestamp).toLocaleString()}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
+          {parkingSpots.length > 0 ? (
+            <SpatialHeatmap
+              spots={parkingSpots}
+              mode="occupancy"
+              selectedSpot={selectedSpot}
+              onSelectSpot={handleSpotSelect}
+            />
+          ) : (
+            <div className="p-4">
+              <EmptyState title="No parking spot data" description="Spot controls will appear when the heatmap endpoint returns spot-level occupancy." />
             </div>
           )}
+        </Panel>
+
+        <div className="space-y-4">
+          <Panel className="p-4">
+            <h2 className="mb-3 text-base font-bold text-[var(--pp-ink)]">Zone Intelligence</h2>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="rounded-[var(--pp-radius)] border border-[var(--pp-line)] p-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-[var(--pp-ink)]">CAMT_01 - Front</span>
+                  <StatusBadge tone={lotFilter === 'CAMT_01' ? 'info' : 'neutral'}>{lotFilter === 'CAMT_01' ? 'Selected' : 'Live'}</StatusBadge>
+                </div>
+                <p className="mt-2 text-sm text-[var(--pp-muted)]">{camt01Data?.total_spaces || 0} spaces total</p>
+              </div>
+              <div className="rounded-[var(--pp-radius)] border border-[var(--pp-line)] p-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-[var(--pp-ink)]">CAMT_02 - Rear</span>
+                  <StatusBadge tone={lotFilter === 'CAMT_02' ? 'info' : 'neutral'}>{lotFilter === 'CAMT_02' ? 'Selected' : 'Live'}</StatusBadge>
+                </div>
+                <p className="mt-2 text-sm text-[var(--pp-muted)]">{camt02Data?.total_spaces || 0} spaces total</p>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel className="p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-bold text-[var(--pp-ink)]">{selectedSpot ? `Spot ${selectedSpot} History` : 'Spot History'}</h2>
+              {selectedSpot && (
+                <Button variant="ghost" className="min-h-8 px-2" onClick={() => setSelectedSpot(null)} aria-label="Clear selected spot">
+                  <X size={16} />
+                </Button>
+              )}
+            </div>
+            {!selectedSpot ? (
+              <EmptyState title="Select a parking spot" description="Click a spot on the map to inspect recent occupancy events." />
+            ) : slotHistory.length === 0 ? (
+              <EmptyState title="No events recorded" description="This spot has no returned event history for the selected lot." />
+            ) : (
+              <div className="max-h-72 space-y-2 overflow-y-auto">
+                {slotHistory.map((event) => (
+                  <div key={event.event_id} className="flex items-center justify-between gap-3 border-b border-[var(--pp-line)] py-2 text-sm last:border-b-0">
+                    <span className="font-semibold capitalize text-[var(--pp-ink)]">{event.state}</span>
+                    <span className="flex items-center gap-1 text-[var(--pp-muted)]">
+                      <Clock size={14} />
+                      {new Date(event.timestamp).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Panel>
 
           <LiveEventFeed events={liveEvents} />
         </div>
