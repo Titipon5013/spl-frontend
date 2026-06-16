@@ -1,21 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Activity, AlertTriangle, CheckCircle2, Cpu, Server, Video, XCircle, Zap } from 'lucide-react';
+import axiosInstance from '../api/axios';
 import MainLayout from '../components/MainLayout';
 import StatCard from '../components/StatCard';
 import SystemHealthPanel from '../components/SystemHealthPanel';
-import { Server, Video, Wifi, Terminal, AlertTriangle, Cpu, Activity, Zap, CheckCircle2, XCircle } from 'lucide-react';
-import axiosInstance from '../api/axios';
+import { EmptyState, PageHeader, Panel, StatusBadge } from '../components/ui';
+import type { DeviceHealth } from '../types/parking';
 
 const SystemHealthPage: React.FC = () => {
-  const [healthData, setHealthData] = useState<any>(null);
+  const [healthData, setHealthData] = useState<DeviceHealth | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // ดึงข้อมูลสถานะอุปกรณ์จาก API
   const fetchHealthData = async () => {
     try {
+      setError(null);
       const response = await axiosInstance.get('/analytics/health?lot_id=CAMT_02');
       setHealthData(response.data);
-    } catch (error) {
-      console.error("Error fetching health data:", error);
+    } catch (err) {
+      console.error('Error fetching health data:', err);
+      setError('Device health data is unavailable. Check API connectivity or board heartbeat.');
     } finally {
       setLoading(false);
     }
@@ -23,187 +27,165 @@ const SystemHealthPage: React.FC = () => {
 
   useEffect(() => {
     fetchHealthData();
-    const intervalId = setInterval(fetchHealthData, 10000); // อัปเดตทุก 10 วินาที
+    const intervalId = setInterval(fetchHealthData, 10000);
     return () => clearInterval(intervalId);
   }, []);
 
-  // ตัวแปรเช็คสถานะเพื่อปรับสี UI
-  const isHealthy = healthData?.system_status === "Healthy";
-  const boardOnline = healthData?.board?.status === "online";
+  const isHealthy = healthData?.system_status === 'Healthy';
+  const boardOnline = healthData?.board?.status === 'online';
   const cameraNodes = [
-    { key: 'camera_1', label: 'Parking Area 1', ip: 'parking/index.m3u8' },
-    { key: 'camera_2', label: 'Parking Area 2', ip: 'parking2/index.m3u8' },
-    { key: 'camera_3', label: 'License Check 1', ip: 'license/index.m3u8' },
-    { key: 'camera_4', label: 'License Check 2', ip: 'license1/index.m3u8' },
-  ].map((camera) => ({
-    ...camera,
-    online: healthData?.[camera.key]?.status === "online",
-    status: healthData?.[camera.key]?.status || "unknown",
-  }));
+    { key: 'camera_1', label: 'Parking Area 1', path: 'parking/index.m3u8' },
+    { key: 'camera_2', label: 'Parking Area 2', path: 'parking2/index.m3u8' },
+    { key: 'camera_3', label: 'License Check 1', path: 'license/index.m3u8' },
+    { key: 'camera_4', label: 'License Check 2', path: 'license1/index.m3u8' },
+  ].map((camera) => {
+    const node = healthData?.[camera.key as keyof DeviceHealth] as any;
+    return {
+      ...camera,
+      online: node?.status === 'online',
+      status: node?.status || 'unknown',
+    };
+  });
   const activeCameras = cameraNodes.filter((camera) => camera.online).length;
 
-  const buildHealthLogs = () => {
-    if (!healthData) return [];
-    const now = new Date().toLocaleTimeString();
-    return [
-      { time: now, level: 'INFO', message: `System status: ${healthData.system_status}` },
-      { time: now, level: healthData.board?.status === 'online' ? 'SUCCESS' : 'WARN', message: `Orange Pi board is ${healthData.board?.status || 'unknown'}` },
-      ...cameraNodes.map((camera) => ({
-        time: now,
-        level: camera.online ? 'SUCCESS' : 'WARN',
-        message: `${camera.label} is ${camera.status}`,
-      })),
-      { time: now, level: 'DB', message: `Uptime score: ${healthData.uptime_percentage}%` },
-    ];
-  };
+  const now = new Date().toLocaleTimeString();
+  const healthLogs = healthData
+    ? [
+        { time: now, level: 'INFO', message: `System status: ${healthData.system_status}` },
+        { time: now, level: boardOnline ? 'SUCCESS' : 'WARN', message: `Orange Pi board is ${healthData.board?.status || 'unknown'}` },
+        ...cameraNodes.map((camera) => ({
+          time: now,
+          level: camera.online ? 'SUCCESS' : 'WARN',
+          message: `${camera.label} is ${camera.status}`,
+        })),
+        { time: now, level: 'DB', message: `Uptime score: ${healthData.uptime_percentage}%` },
+      ]
+    : [];
 
-  const healthLogs = buildHealthLogs();
+  const incidents = [
+    !boardOnline && {
+      tone: 'danger' as const,
+      label: 'Critical fault',
+      message: 'Connection to Orange Pi main node is unavailable. Parking event ingestion may be halted.',
+    },
+    activeCameras < 4 && boardOnline && {
+      tone: 'warning' as const,
+      label: 'Hardware alert',
+      message: 'One or more camera streams are unreachable. Check power and network cables.',
+    },
+    {
+      tone: 'info' as const,
+      label: 'System info',
+      message: 'Health status refreshes every 10 seconds while this page is open.',
+    },
+  ].filter(Boolean) as Array<{ tone: 'info' | 'warning' | 'danger'; label: string; message: string }>;
 
   return (
     <MainLayout pageTitle="System Health">
-      <div className="space-y-6">
-        
-        {/* Header Section */}
-        <div className="flex justify-between items-end">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">System Infrastructure Health</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Real-time monitoring of Edge AI (Orange Pi) and Camera nodes.
-            </p>
-          </div>
-          <div className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 ${isHealthy ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
-            <span className={`w-2 h-2 rounded-full animate-pulse ${isHealthy ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-            {loading ? "CONNECTING..." : (isHealthy ? "SYSTEMS OPERATIONAL" : "SYSTEM DEGRADED")}
-          </div>
-        </div>
+      <PageHeader
+        title="System Infrastructure Health"
+        description="Monitor Orange Pi, camera streams, uptime, and incident state from one operational surface."
+        actions={<StatusBadge tone={isHealthy ? 'success' : 'danger'} pulse>{loading ? 'Connecting' : isHealthy ? 'Systems operational' : 'System degraded'}</StatusBadge>}
+      />
 
-        {/* Top Stat Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatCard 
-            title="Orange Pi Main" 
-            value={boardOnline ? "Online" : "Offline"} 
-            icon={<Cpu size={18} />} 
-            subtitle="Central Processing Node" 
-            trend={boardOnline ? "Active" : "Critical"}
-            trendUp={boardOnline}
-          />
-          <StatCard 
-            title="Active Cameras" 
-            value={`${activeCameras} / 4`} 
-            icon={<Video size={18} />} 
-            subtitle="Connected Camera Streams" 
-            trend={activeCameras === 4 ? "Stable" : "Warning"}
-            trendUp={activeCameras === 4}
-          />
-          <StatCard 
-            title="Server Uptime" 
-            value={`${healthData?.uptime_percentage || 99.8}%`} 
-            icon={<Server size={18} />} 
-            subtitle="FastAPI Backend" 
-            trend="Stable"
-            trendUp={true}
-          />
-        </div>
+      {error && <div className="mb-5"><EmptyState title="Unable to load system health" description={error} tone="warning" /></div>}
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* Terminal Window */}
-            <SystemHealthPanel logs={healthLogs as any} />
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <StatCard
+          title="Orange Pi Main"
+          value={boardOnline ? 'Online' : 'Offline'}
+          icon={<Cpu size={18} />}
+          subtitle="Central processing node"
+          trend={boardOnline ? 'Active' : 'Critical'}
+          trendUp={boardOnline}
+        />
+        <StatCard
+          title="Active Cameras"
+          value={`${activeCameras} / 4`}
+          icon={<Video size={18} />}
+          subtitle="Connected camera streams"
+          trend={activeCameras === 4 ? 'Stable' : 'Warning'}
+          trendUp={activeCameras === 4}
+        />
+        <StatCard
+          title="Server Uptime"
+          value={`${healthData?.uptime_percentage || 0}%`}
+          icon={<Server size={18} />}
+          subtitle="FastAPI backend"
+          trend={(healthData?.uptime_percentage || 0) > 90 ? 'Stable' : 'Check'}
+          trendUp={(healthData?.uptime_percentage || 0) > 90}
+        />
+      </div>
 
-            {/* Hardware topology for the four connected camera streams. */}
-            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm relative">
-              <h3 className="text-sm font-bold text-gray-400 mb-6 uppercase tracking-wider absolute top-4 left-4">Hardware Topology</h3>
-              
-              <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto_1fr] gap-6 items-center mt-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {cameraNodes.slice(0, 2).map((camera, index) => (
-                    <div key={camera.key} className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${camera.online ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50 opacity-70'}`}>
-                      {camera.online ? <CheckCircle2 size={20} className="text-emerald-500 mb-2" /> : <XCircle size={20} className="text-red-500 mb-2" />}
-                      <Video size={32} className={camera.online ? 'text-gray-800' : 'text-gray-400'} />
-                      <p className="font-bold mt-2 text-sm">{camera.label}</p>
-                      <p className="text-xs text-gray-500 font-mono">Camera 0{index + 1}</p>
-                      <p className="text-[10px] text-gray-400 font-mono mt-1">{camera.ip}</p>
-                    </div>
-                  ))}
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[1fr_360px]">
+        <div className="space-y-4">
+          <SystemHealthPanel logs={healthLogs as any} />
+
+          <Panel className="p-4">
+            <h2 className="mb-4 text-base font-bold text-[var(--pp-ink)]">Hardware Topology</h2>
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_auto_1fr] xl:items-center">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {cameraNodes.slice(0, 2).map((camera, index) => (
+                  <DeviceNodeCard key={camera.key} cameraIndex={index + 1} label={camera.label} path={camera.path} online={camera.online} status={camera.status} />
+                ))}
+              </div>
+
+              <div className={`flex flex-col items-center rounded-[var(--pp-radius)] border bg-white p-5 ${boardOnline ? 'border-[var(--pp-blue)]' : 'border-[var(--pp-danger)]'}`}>
+                <div className={`mb-2 rounded-[var(--pp-radius)] p-3 ${boardOnline ? 'bg-[var(--pp-blue-soft)] text-[var(--pp-blue)]' : 'bg-[var(--pp-danger-soft)] text-[var(--pp-danger)]'}`}>
+                  <Zap size={30} />
                 </div>
+                <h3 className="text-lg font-bold text-[var(--pp-ink)]">Orange Pi 5</h3>
+                <StatusBadge tone={boardOnline ? 'success' : 'danger'}>{boardOnline ? 'Transmitting' : 'Connection lost'}</StatusBadge>
+              </div>
 
-                <div className={`flex flex-col items-center p-6 rounded-2xl shadow-md border-2 z-10 bg-white ${boardOnline ? 'border-blue-500' : 'border-red-500'}`}>
-                  <div className={`p-3 rounded-full mb-2 ${boardOnline ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>
-                    <Zap size={32} />
-                  </div>
-                  <h3 className="font-extrabold text-lg text-gray-900">Orange Pi 5</h3>
-                  <p className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full mt-2">EDGE AI NODE</p>
-                  <p className="text-xs text-gray-400 font-mono mt-2">{loading ? "..." : (boardOnline ? "Transmitting..." : "Connection Lost")}</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {cameraNodes.slice(2).map((camera, index) => (
-                    <div key={camera.key} className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${camera.online ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50 opacity-70'}`}>
-                      {camera.online ? <CheckCircle2 size={20} className="text-emerald-500 mb-2" /> : <XCircle size={20} className="text-red-500 mb-2" />}
-                      <Video size={32} className={camera.online ? 'text-gray-800' : 'text-gray-400'} />
-                      <p className="font-bold mt-2 text-sm">{camera.label}</p>
-                      <p className="text-xs text-gray-500 font-mono">Camera 0{index + 3}</p>
-                      <p className="text-[10px] text-gray-400 font-mono mt-1">{camera.ip}</p>
-                    </div>
-                  ))}
-                </div>
-
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {cameraNodes.slice(2).map((camera, index) => (
+                  <DeviceNodeCard key={camera.key} cameraIndex={index + 3} label={camera.label} path={camera.path} online={camera.online} status={camera.status} />
+                ))}
               </div>
             </div>
-
-          </div>
-
-          {/* Right: Incident Registry */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-              <AlertTriangle size={18} className="text-red-500" />
-              <h3 className="font-bold text-gray-800">Incident Registry</h3>
-            </div>
-            
-            <div className="p-4 space-y-4 flex-1 overflow-y-auto">
-              {!boardOnline && (
-                <div className="border-l-4 border-red-500 pl-3 py-1">
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded">CRITICAL FAULT</span>
-                    <span className="text-xs text-gray-400 font-mono">Live</span>
-                  </div>
-                  <p className="text-sm text-gray-800 font-medium leading-tight">Connection to Orange Pi Main Node lost. System halted.</p>
-                </div>
-              )}
-
-              {activeCameras < 4 && boardOnline && (
-                <div className="border-l-4 border-yellow-500 pl-3 py-1">
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="text-xs font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded">HARDWARE ALERT</span>
-                    <span className="text-xs text-gray-400 font-mono">Live</span>
-                  </div>
-                  <p className="text-sm text-gray-800 font-medium leading-tight">One or more camera nodes are unreachable. Please check power/network cables.</p>
-                </div>
-              )}
-
-              <div className="border-l-4 border-blue-500 pl-3 py-1">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">SYSTEM INFO</span>
-                  <span className="text-xs text-gray-400 font-mono">09:00:00</span>
-                </div>
-                <p className="text-sm text-gray-800 font-medium leading-tight">Scheduled DB maintenance completed for parking_snapshots.</p>
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-gray-100">
-              <button className="w-full bg-gray-900 text-white font-bold py-3 rounded-lg text-sm hover:bg-gray-800 transition-colors">
-                VIEW FULL REGISTRY ARCHIVE
-              </button>
-            </div>
-          </div>
-
+          </Panel>
         </div>
+
+        <Panel className="overflow-hidden">
+          <div className="flex items-center gap-2 border-b border-[var(--pp-line)] bg-white p-4">
+            <AlertTriangle size={18} className="text-[var(--pp-danger)]" />
+            <h2 className="font-bold text-[var(--pp-ink)]">Incident Registry</h2>
+          </div>
+          <div className="space-y-3 p-4">
+            {incidents.map((incident) => (
+              <div key={incident.label} className="rounded-[var(--pp-radius)] border border-[var(--pp-line)] p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <StatusBadge tone={incident.tone}>{incident.label}</StatusBadge>
+                  <span className="text-xs font-semibold text-[var(--pp-muted)]">Live</span>
+                </div>
+                <p className="text-sm leading-snug text-[var(--pp-ink)]">{incident.message}</p>
+              </div>
+            ))}
+          </div>
+        </Panel>
       </div>
     </MainLayout>
   );
 };
+
+const DeviceNodeCard: React.FC<{
+  cameraIndex: number;
+  label: string;
+  path: string;
+  online: boolean;
+  status: string;
+}> = ({ cameraIndex, label, path, online, status }) => (
+  <div className={`rounded-[var(--pp-radius)] border p-4 ${online ? 'border-[#b8dfcb] bg-[var(--pp-success-soft)]' : 'border-[#f3b5bb] bg-[var(--pp-danger-soft)]'}`}>
+    <div className="mb-2 flex items-center gap-2">
+      {online ? <CheckCircle2 size={18} className="text-[var(--pp-success)]" /> : <XCircle size={18} className="text-[var(--pp-danger)]" />}
+      <StatusBadge tone={online ? 'success' : 'danger'}>{status}</StatusBadge>
+    </div>
+    <Activity size={28} className={online ? 'text-[var(--pp-ink)]' : 'text-[var(--pp-muted)]'} />
+    <p className="mt-2 text-sm font-bold text-[var(--pp-ink)]">{label}</p>
+    <p className="text-xs text-[var(--pp-muted)]">Camera 0{cameraIndex}</p>
+    <p className="mt-1 truncate text-xs font-mono text-[var(--pp-muted)]">{path}</p>
+  </div>
+);
 
 export default SystemHealthPage;

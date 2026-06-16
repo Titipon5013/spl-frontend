@@ -17,16 +17,16 @@ const SystemHealthPanel: React.FC<{ logs: Log[] }> = ({ logs }) => {
   };
 
   return (
-    <div className="bg-[#1e1e1e] rounded-xl shadow-sm overflow-hidden flex flex-col">
-      <div className="bg-[#323233] px-4 py-2 flex items-center gap-2">
+    <div className="flex flex-col overflow-hidden rounded-[var(--pp-radius)] border border-slate-700 bg-[#1e1e1e]">
+      <div className="flex items-center gap-2 bg-[#323233] px-4 py-2">
         <div className="flex gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-red-500"></div>
-          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          <div className="h-3 w-3 rounded-full bg-red-500"></div>
+          <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
+          <div className="h-3 w-3 rounded-full bg-green-500"></div>
         </div>
-        <span className="text-xs text-gray-400 font-mono ml-4">parkpilot_telemetry.sh — root@camt-broker</span>
+        <span className="ml-4 text-xs font-mono text-gray-400">parkpilot_telemetry.sh - root@camt-broker</span>
       </div>
-      <div className="p-4 font-mono text-xs space-y-2 h-64 overflow-y-auto">
+      <div className="h-64 space-y-2 overflow-y-auto p-4 font-mono text-xs">
         {logs.map((log, index) => (
           <p key={index} className={getLogColor(log.level)}>
             <span className="text-gray-500">[{log.time}] {log.level}:</span> {log.message}

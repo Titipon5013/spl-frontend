@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import axiosInstance from '../api/axios';
 import { toast } from 'react-toastify';
-import { Button, Spinner } from 'react-bootstrap';
+import { DoorOpen } from 'lucide-react';
+import { Button } from './ui';
 
 const OpenGateButton: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -37,13 +38,12 @@ const OpenGateButton: React.FC = () => {
 
   return (
     <Button
-      variant="primary"
       onClick={handleOpenGate}
-      disabled={loading}
-      className="d-flex align-items-center gap-2 rounded-pill"
+      loading={loading}
+      className="min-w-36"
     >
-      {loading && <Spinner animation="border" size="sm" />}
-      {loading ? 'Opening...' : 'Open Gate'}
+      <DoorOpen size={16} />
+      {loading ? 'Opening gate' : 'Open Gate'}
     </Button>
   );
 };
