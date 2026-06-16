@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { FileDown } from 'lucide-react';
 import axiosInstance from '../api/axios';
+import { Button } from './ui';
+import type { ReportExportFormat } from '../types/parking';
 
 interface ExportReportToolsProps {
   lotId?: string;
@@ -11,9 +13,9 @@ const ExportReportTools: React.FC<ExportReportToolsProps> = ({
   lotId = 'CAMT_01',
   days = 7,
 }) => {
-  const [exporting, setExporting] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<ReportExportFormat | null>(null);
 
-  const downloadExport = async (format: 'csv' | 'pdf') => {
+  const downloadExport = async (format: ReportExportFormat) => {
     try {
       setExporting(format);
       const endDate = new Date();
@@ -48,21 +50,22 @@ const ExportReportTools: React.FC<ExportReportToolsProps> = ({
   };
 
   return (
-    <div className="flex gap-3">
-      <button
+    <div className="flex flex-wrap gap-2">
+      <Button
+        variant="secondary"
         onClick={() => downloadExport('csv')}
         disabled={exporting !== null}
-        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50"
+        loading={exporting === 'csv'}
       >
-        <FileDown size={18} /> {exporting === 'csv' ? 'Exporting...' : 'Export to CSV'}
-      </button>
-      <button
+        <FileDown size={16} /> CSV
+      </Button>
+      <Button
         onClick={() => downloadExport('pdf')}
         disabled={exporting !== null}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg text-sm font-bold hover:bg-blue-800 transition-all shadow-sm disabled:opacity-50"
+        loading={exporting === 'pdf'}
       >
-        <FileDown size={18} /> {exporting === 'pdf' ? 'Exporting...' : 'Export to PDF'}
-      </button>
+        <FileDown size={16} /> PDF
+      </Button>
     </div>
   );
 };
