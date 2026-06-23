@@ -16,7 +16,8 @@ const Home: React.FC = () => {
 
   const fetchSnapshot = async () => {
     try {
-      const response = await axiosInstance.get('/analytics/current?lot_id=CAMT_01');
+      // 👇 เปลี่ยนเป็นดึงข้อมูลจาก CAMT_02 (Live AI Camera) ให้ตรงกับหน้า Dashboard
+      const response = await axiosInstance.get('/analytics/current?lot_id=CAMT_02');
       setSnapshot(response.data);
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (error) {
@@ -62,7 +63,8 @@ const Home: React.FC = () => {
           <StatusBadge tone={lastUpdated === 'Sync failed' ? 'warning' : 'success'} pulse>Live status</StatusBadge>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--pp-ink)] md:text-4xl">CAMT Smart Parking</h2>
           <p className="mt-3 max-w-2xl text-base leading-7 text-[var(--pp-muted)]">
-            Check current CAMT_01 availability before arrival and register a license plate for automated parking access.
+            {/* 👇 อัปเดตข้อความให้ไม่ต้องระบุ CAMT_01 */}
+            Check current parking availability before arrival and register a license plate for automated parking access.
           </p>
         </div>
 
