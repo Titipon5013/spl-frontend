@@ -9,20 +9,20 @@ import StatCard from '../components/StatCard';
 import { EmptyState, PageHeader, Panel, SelectField, StatusBadge, Toolbar } from '../components/ui';
 import type { DeviceHealth, KpiSummary, ParkingLotId, ParkingSnapshot, ParkingSpot } from '../types/parking';
 
+// 🛑 ซ่อน CAMT_01 ไว้ก่อน จนกว่าในอนาคตคุณจะรัน AI ครบทั้ง 2 มุม
 const lotOptions: Array<{ value: ParkingLotId; label: string }> = [
-  { value: 'CAMT_01', label: 'CAMT_01 - Front lot' },
-  { value: 'CAMT_02', label: 'CAMT_02 - Rear lot' },
+  { value: 'CAMT_02', label: 'CAMT Parking Lot (Live Camera)' },
 ];
 
 const AnalyticsPage: React.FC = () => {
-  const [camt01Data, setCamt01Data] = useState<ParkingSnapshot | null>(null);
-  const [camt02Data, setCamt02Data] = useState<ParkingSnapshot | null>(null);
+  const [parkingData, setParkingData] = useState<ParkingSnapshot | null>(null);
   const [healthData, setHealthData] = useState<DeviceHealth | null>(null);
   const [kpiData, setKpiData] = useState<KpiSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
-  const [lotFilter, setLotFilter] = useState<ParkingLotId>('CAMT_01');
+  // 🛑 บังคับให้โหลดข้อมูล CAMT_02 เป็นหลัก
+  const [lotFilter, setLotFilter] = useState<ParkingLotId>('CAMT_02');
   const [lastSync, setLastSync] = useState<string>('Not synced');
 
   const fetchAllParkingData = async () => {
@@ -32,24 +32,22 @@ const AnalyticsPage: React.FC = () => {
       const startDate = new Date();
       startDate.setDate(endDate.getDate() - 7);
 
-      const [res01, res02, resHeatmap, resHealth, resKpis] = await Promise.all([
-        axiosInstance.get('/analytics/current?lot_id=CAMT_01'),
-        axiosInstance.get('/analytics/current?lot_id=CAMT_02'),
-        axiosInstance.get(`/analytics/heatmap?lot_id=${lotFilter}`),
-        axiosInstance.get('/analytics/health?lot_id=CAMT_01'),
+      const [resCurrent, resHeatmap, resHealth, resKpis] = await Promise.all([
+        axiosInstance.get(`/analytics/current?lot_id=${lotFilter}`).catch(() => ({ data: null })),
+        axiosInstance.get(`/analytics/heatmap?lot_id=${lotFilter}`).catch(() => ({ data: null })),
+        axiosInstance.get(`/analytics/health?lot_id=${lotFilter}`).catch(() => ({ data: null })),
         axiosInstance.get('/analytics/kpis', {
           params: {
             lot_id: lotFilter,
             start_date: startDate.toISOString(),
             end_date: endDate.toISOString(),
           },
-        }),
+        }).catch(() => ({ data: null })),
       ]);
 
-      setCamt01Data(res01.data);
-      setCamt02Data(res02.data);
-      setHealthData(resHealth.data);
-      setKpiData(resKpis.data);
+      if (resCurrent.data) setParkingData(resCurrent.data);
+      if (resHealth.data) setHealthData(resHealth.data);
+      if (resKpis.data) setKpiData(resKpis.data);
       setLastSync(new Date().toLocaleTimeString());
 
       const spots = resHeatmap.data?.spots || [];
@@ -57,7 +55,7 @@ const AnalyticsPage: React.FC = () => {
         spots.map((spot: any) => ({
           id: spot.spot_id,
           status: spot.occupancy_percentage > 50 ? 'occupied' : 'available',
-          heatRate: spot.occupancy_percentage,
+          heatRate: spot.occupancy_percentage || 0,
         }))
       );
     } catch (err) {
@@ -74,11 +72,13 @@ const AnalyticsPage: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [lotFilter]);
 
-  const globalTotalSpaces = (camt01Data?.total_spaces || 0) + (camt02Data?.total_spaces || 0);
-  const globalOccupiedSpaces = (camt01Data?.occupied_spaces || 0) + (camt02Data?.occupied_spaces || 0);
-  const globalAvailableSpaces = (camt01Data?.available_spaces || 0) + (camt02Data?.available_spaces || 0);
+  // 🛑 ให้ Global Stat อิงจากข้อมูลชุดเดียวเลย
+  const globalTotalSpaces = parkingData?.total_spaces || 0;
+  const globalOccupiedSpaces = parkingData?.occupied_spaces || 0;
+  const globalAvailableSpaces = parkingData?.available_spaces || 0;
   const globalOccupancyRate = globalTotalSpaces > 0 ? (globalOccupiedSpaces / globalTotalSpaces) * 100 : 0;
-  const isHealthy = healthData?.system_status === 'Healthy';
+  
+  const isHealthy = healthData?.system_status?.toLowerCase() === 'healthy';
   const occupancyTone = globalOccupancyRate > 85 ? 'danger' : globalOccupancyRate > 60 ? 'warning' : 'success';
 
   return (
@@ -138,7 +138,7 @@ const AnalyticsPage: React.FC = () => {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
             <StatCard title="Vehicle Count" value={loading ? '...' : kpiData?.vehicle_count ?? 0} icon={<Car size={18} />} subtitle="Selected lot, last 7 days" />
             <StatCard title="Average Dwell" value={loading ? '...' : `${kpiData?.avg_dwell_time_minutes ?? 0} min`} icon={<Clock size={18} />} subtitle="Average parking duration" />
-            <StatCard title="Total Spaces" value={loading ? '...' : globalTotalSpaces} icon={<ParkingCircle size={18} />} subtitle="CAMT_01 + CAMT_02" />
+            <StatCard title="Total Spaces" value={loading ? '...' : globalTotalSpaces} icon={<ParkingCircle size={18} />} subtitle="Live monitored spots" />
             <StatCard
               title="Node Status"
               value={loading ? '...' : healthData?.system_status || 'Offline'}
@@ -152,15 +152,9 @@ const AnalyticsPage: React.FC = () => {
           <Panel className="p-4">
             <h2 className="mb-4 text-base font-bold text-[var(--pp-ink)]">Lot Segments</h2>
             <ProgressBar
-              label="CAMT_01 - Front"
-              current={loading ? 0 : camt01Data?.occupied_spaces || 0}
-              max={loading ? 1 : camt01Data?.total_spaces || 1}
-              statusLabel="Live API"
-            />
-            <ProgressBar
-              label="CAMT_02 - Rear"
-              current={loading ? 0 : camt02Data?.occupied_spaces || 0}
-              max={loading ? 1 : camt02Data?.total_spaces || 1}
+              label="Live Camera Feed (AI Zone)"
+              current={loading ? 0 : parkingData?.occupied_spaces || 0}
+              max={loading ? 1 : parkingData?.total_spaces || 1}
               statusLabel="Live API"
             />
           </Panel>
