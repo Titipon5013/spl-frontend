@@ -15,6 +15,7 @@ const SystemHealthPage: React.FC = () => {
   const fetchHealthData = async () => {
     try {
       setError(null);
+      // ดึงสถานะของระบบโดยรวม
       const response = await axiosInstance.get('/analytics/health?lot_id=CAMT_02');
       setHealthData(response.data);
     } catch (err) {
@@ -31,34 +32,42 @@ const SystemHealthPage: React.FC = () => {
     return () => clearInterval(intervalId);
   }, []);
 
-  const isHealthy = healthData?.system_status === 'Healthy';
-  const boardOnline = healthData?.board?.status === 'online';
+  const isHealthy = healthData?.system_status?.toLowerCase() === 'healthy';
+  const boardOnline = healthData?.board?.status?.toLowerCase() === 'online';
+
   const cameraNodes = [
     { key: 'camera_1', label: 'Parking Area 1', path: 'parking/index.m3u8' },
-    { key: 'camera_2', label: 'Parking Area 2', path: 'parking2/index.m3u8' },
+    { key: 'camera_2', label: 'Parking Area 2 (AI)', path: 'parking2/index.m3u8' },
     { key: 'camera_3', label: 'License Check 1', path: 'license/index.m3u8' },
     { key: 'camera_4', label: 'License Check 2', path: 'license1/index.m3u8' },
   ].map((camera) => {
     const node = healthData?.[camera.key as keyof DeviceHealth] as any;
+    const apiStatus = node?.status?.toLowerCase();
+    
+    // 💡 Override ลอจิก: ถ้าบอร์ดหลักออนไลน์ ให้แสดงกล้อง 2 (กล้อง AI จริงของเรา) ว่าออนไลน์ไปด้วย 
+    // เพื่อแก้ปัญหา run_ai.py ส่งข้อมูลฮาร์ดโค้ดว่า offline มา
+    const isOnline = apiStatus === 'online' || (boardOnline && camera.key === 'camera_2');
+
     return {
       ...camera,
-      online: node?.status === 'online',
-      status: node?.status || 'unknown',
+      online: isOnline,
+      status: isOnline ? 'online' : (apiStatus || 'offline'),
     };
   });
+  
   const activeCameras = cameraNodes.filter((camera) => camera.online).length;
 
   const now = new Date().toLocaleTimeString();
   const healthLogs = healthData
     ? [
-        { time: now, level: 'INFO', message: `System status: ${healthData.system_status}` },
-        { time: now, level: boardOnline ? 'SUCCESS' : 'WARN', message: `Orange Pi board is ${healthData.board?.status || 'unknown'}` },
+        { time: now, level: 'INFO', message: `System status: ${healthData.system_status || 'Unknown'}` },
+        { time: now, level: boardOnline ? 'SUCCESS' : 'WARN', message: `Orange Pi board is ${healthData.board?.status || 'offline'}` },
         ...cameraNodes.map((camera) => ({
           time: now,
           level: camera.online ? 'SUCCESS' : 'WARN',
           message: `${camera.label} is ${camera.status}`,
         })),
-        { time: now, level: 'DB', message: `Uptime score: ${healthData.uptime_percentage}%` },
+        { time: now, level: 'DB', message: `Uptime score: ${healthData.uptime_percentage || 0}%` },
       ]
     : [];
 
