@@ -8,10 +8,10 @@ import StatCard from '../components/StatCard';
 import { EmptyState, PageHeader, Panel, StatusBadge } from '../components/ui';
 
 const targetHours = [6, 8, 10, 12, 14, 16, 18, 20];
+const TOTAL_SPACES = 34; // อิงตามพิกัด 34 ช่องจอดจริงที่เราเซ็ตไว้ใน AI
 
 const WeeklyReportPage: React.FC = () => {
-  const [camt01Trends, setCamt01Trends] = useState<number[]>(Array(8).fill(0));
-  const [camt02Trends, setCamt02Trends] = useState<number[]>(Array(8).fill(0));
+  const [trends, setTrends] = useState<number[]>(Array(8).fill(0));
   const [peakHourInsight, setPeakHourInsight] = useState<string>('Analyzing weekly usage...');
   const [uptime, setUptime] = useState<number>(0);
   const [avgEntries, setAvgEntries] = useState<number | null>(null);
@@ -35,37 +35,30 @@ const WeeklyReportPage: React.FC = () => {
       const startDate = new Date();
       startDate.setDate(endDate.getDate() - 7);
 
-      const [res01, res02, resHealth] = await Promise.all([
-        axiosInstance.get(`/analytics/trends?lot_id=CAMT_01&start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`).catch(() => ({ data: null })),
+      // ดึงข้อมูล Trends, Health และ KPIs สำหรับ CAMT_02 ที่เดียว
+      const [resTrends, resHealth, kpiRes] = await Promise.all([
         axiosInstance.get(`/analytics/trends?lot_id=CAMT_02&start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`).catch(() => ({ data: null })),
-        axiosInstance.get('/analytics/health?lot_id=CAMT_01').catch(() => ({ data: null })),
+        axiosInstance.get('/analytics/health?lot_id=CAMT_02').catch(() => ({ data: null })),
+        axiosInstance.get('/analytics/kpis', {
+          params: {
+            lot_id: 'CAMT_02',
+            start_date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+          },
+        }).catch(() => ({ data: null }))
       ]);
 
-      if (res01.data?.trends) {
-        setCamt01Trends(mapTrendsToChart(res01.data.trends, 34));
-        if (res01.data.peak_hour) {
-          const timeOnly = res01.data.peak_hour.split(' ')[1];
-          setPeakHourInsight(`CAMT_01 reached peak demand at ${timeOnly}. Consider routing overflow to CAMT_02 during that period.`);
+      if (resTrends.data?.trends) {
+        setTrends(mapTrendsToChart(resTrends.data.trends, TOTAL_SPACES));
+        if (resTrends.data.peak_hour) {
+          const timeOnly = resTrends.data.peak_hour.split(' ')[1];
+          setPeakHourInsight(`Live Camera Zone (CAMT_02) reached peak demand at ${timeOnly} this week. Utilization is tracked accurately for the ${TOTAL_SPACES} monitored spots.`);
         } else {
           setPeakHourInsight('No critical peak hour was detected this week. Utilization stayed inside normal operating bounds.');
         }
       }
 
-      if (res02.data?.trends) {
-        setCamt02Trends(mapTrendsToChart(res02.data.trends, 41));
-      }
-
       if (resHealth.data) setUptime(resHealth.data.uptime_percentage || 0);
-
-      const kpiRes = await axiosInstance
-        .get('/analytics/kpis', {
-          params: {
-            lot_id: 'CAMT_01',
-            start_date: startDate.toISOString(),
-            end_date: endDate.toISOString(),
-          },
-        })
-        .catch(() => ({ data: null }));
 
       if (kpiRes.data) {
         setAvgEntries(kpiRes.data.vehicle_count);
@@ -84,15 +77,15 @@ const WeeklyReportPage: React.FC = () => {
     fetchWeeklyData();
   }, []);
 
-  const avgCamt01 = camt01Trends.reduce((a, b) => a + b, 0) / (camt01Trends.filter((v) => v > 0).length || 1);
-  const avgCamt02 = camt02Trends.reduce((a, b) => a + b, 0) / (camt02Trends.filter((v) => v > 0).length || 1);
+  // คำนวณค่าเฉลี่ยความหนาแน่นเพื่อแสดงใน Progress Bar
+  const avgOccupancy = trends.reduce((a, b) => a + b, 0) / (trends.filter((v) => v > 0).length || 1);
 
   return (
     <MainLayout pageTitle="Weekly Reports">
       <PageHeader
         title="Weekly Performance Report"
         description="Seven-day utilization, peak demand, exports, and report-ready operational insight."
-        actions={<ExportReportTools />}
+        actions={<ExportReportTools lotId="CAMT_02" />} // ส่ง Lot ไปเผื่อ Export ด้วย
       />
 
       {error && <div className="mb-5"><EmptyState title="Unable to load report" description={error} tone="warning" /></div>}
@@ -113,22 +106,26 @@ const WeeklyReportPage: React.FC = () => {
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel className="p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-base font-bold text-[var(--pp-ink)]">Campus Zone Utilization</h2>
+            <h2 className="text-base font-bold text-[var(--pp-ink)]">Zone Utilization (Average)</h2>
             <StatusBadge tone="warning">Last 7 days</StatusBadge>
           </div>
-          <ProgressBar label="CAMT_01 - Front" current={Math.round((avgCamt01 / 100) * 34)} max={34} statusLabel={avgCamt01 > 80 ? 'High' : 'Normal'} />
-          <ProgressBar label="CAMT_02 - Rear" current={Math.round((avgCamt02 / 100) * 41)} max={41} statusLabel={avgCamt02 > 80 ? 'High' : 'Normal'} />
-          <ProgressBar label="Science & Tech Extension" current={0} max={100} statusLabel="No data" />
+          {/* แสดงแค่ CAMT_02 ตามความจริง */}
+          <ProgressBar 
+            label="Live Camera Zone (CAMT_02)" 
+            current={Math.round((avgOccupancy / 100) * TOTAL_SPACES)} 
+            max={TOTAL_SPACES} 
+            statusLabel={avgOccupancy > 80 ? 'High' : 'Normal'} 
+          />
         </Panel>
 
         <div className="grid grid-cols-1 gap-4">
-          <TrendPanel title="CAMT_01 Peak Hours" values={camt01Trends} />
-          <TrendPanel title="CAMT_02 Peak Hours" values={camt02Trends} />
+          {/* แสดง Trend Panel เดียว */}
+          <TrendPanel title="Live Camera Peak Hours" values={trends} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <StatCard title="Avg. Daily Entries" value={loading ? '...' : avgEntries !== null ? `${avgEntries} cars` : 'Pending'} icon={<Users size={18} />} subtitle="Event log API" />
+        <StatCard title="Avg. Weekly Entries" value={loading ? '...' : avgEntries !== null ? `${avgEntries} cars` : 'Pending'} icon={<Users size={18} />} subtitle="Event log API" />
         <StatCard title="Average Dwell" value={loading ? '...' : avgTurnover !== null ? `${avgTurnover} min` : 'Pending'} icon={<Clock size={18} />} subtitle="Average parking duration" />
         <StatCard
           title="Hardware Uptime"
