@@ -8,14 +8,12 @@ import { Button, EmptyState, PageHeader, Panel, SelectField, StatusBadge, Toolba
 import type { ParkingLotId, ParkingSnapshot, ParkingSpot } from '../types/parking';
 
 const lotOptions: Array<{ value: ParkingLotId; label: string }> = [
-  { value: 'CAMT_01', label: 'CAMT_01 - Front lot' },
-  { value: 'CAMT_02', label: 'CAMT_02 - Rear lot' },
+  { value: 'CAMT_02', label: 'CAMT Parking Lot (Live Camera)' },
 ];
 
 const LotManagementPage: React.FC = () => {
   const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
-  const [camt01Data, setCamt01Data] = useState<ParkingSnapshot | null>(null);
-  const [camt02Data, setCamt02Data] = useState<ParkingSnapshot | null>(null);
+  const [parkingData, setParkingData] = useState<ParkingSnapshot | null>(null);
   const [liveEvents, setLiveEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,24 +25,38 @@ const LotManagementPage: React.FC = () => {
   const fetchParkingData = async () => {
     try {
       setError(null);
-      const [res01, res02, resHeatmap] = await Promise.all([
-        axiosInstance.get('/analytics/current?lot_id=CAMT_01'),
-        axiosInstance.get('/analytics/current?lot_id=CAMT_02'),
-        axiosInstance.get(`/analytics/heatmap?lot_id=${lotFilter}`),
+      
+      const [resCurrent, resHeatmap] = await Promise.all([
+        axiosInstance.get(`/analytics/current?lot_id=${lotFilter}`).catch(() => ({ data: null })),
+        axiosInstance.get(`/analytics/heatmap?lot_id=${lotFilter}`).catch(() => ({ data: null })),
       ]);
 
-      setCamt01Data(res01.data);
-      setCamt02Data(res02.data);
+      if (resCurrent.data) setParkingData(resCurrent.data);
       setLastSync(new Date().toLocaleTimeString());
 
-      const spots = resHeatmap.data?.spots || [];
-      setParkingSpots(
-        spots.map((spot: any) => ({
+      const liveSpots = resCurrent.data?.spots || []; 
+      const heatmapSpots = resHeatmap.data?.spots || []; 
+
+      // ดึงสถานะ Live (Occupied/Available) มาใช้เป็นหลัก
+      const mergedSpots = heatmapSpots.map((heatSpot: any) => {
+        const liveSpot = liveSpots.find((s: any) => s.spot_id === heatSpot.spot_id);
+        return {
+          id: heatSpot.spot_id,
+          status: liveSpot?.is_occupied ? 'occupied' : 'available',
+          heatRate: heatSpot.occupancy_percentage || 0,
+        };
+      });
+
+      if (mergedSpots.length > 0) {
+        setParkingSpots(mergedSpots);
+      } else if (liveSpots.length > 0) {
+        setParkingSpots(liveSpots.map((spot: any) => ({
           id: spot.spot_id,
-          status: spot.occupancy_percentage > 50 ? 'occupied' : 'available',
-          heatRate: spot.occupancy_percentage,
-        }))
-      );
+          status: spot.is_occupied ? 'occupied' : 'available',
+          heatRate: spot.is_occupied ? 100 : 0, 
+        })));
+      }
+
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Lot data is unavailable. The map will recover when the analytics API responds.');
@@ -61,9 +73,9 @@ const LotManagementPage: React.FC = () => {
       setSlotHistory(response.data);
       setLiveEvents(
         response.data.slice(0, 5).map((event: any) => ({
-          id: event.event_id,
+          id: event.id || event.event_id,
           spot: event.spot_id,
-          action: event.state,
+          action: event.is_occupied ? 'occupied' : 'available',
           time: new Date(event.timestamp).toLocaleTimeString(),
         }))
       );
@@ -84,10 +96,9 @@ const LotManagementPage: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [lotFilter]);
 
-  const currentLotData = lotFilter === 'CAMT_01' ? camt01Data : camt02Data;
-  const occupied = currentLotData?.occupied_spaces || 0;
-  const total = currentLotData?.total_spaces || 0;
-  const available = currentLotData?.available_spaces || 0;
+  const occupied = parkingData?.occupied_spaces || 0;
+  const total = parkingData?.total_spaces || 0;
+  const available = parkingData?.available_spaces || 0;
 
   return (
     <MainLayout pageTitle="Lot Management">
@@ -122,8 +133,8 @@ const LotManagementPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <MapPin size={18} className={loading ? 'text-[var(--pp-muted)]' : 'text-[var(--pp-success)]'} />
               <div>
-                <h2 className="text-base font-bold text-[var(--pp-ink)]">{lotFilter}</h2>
-                <p className="text-sm text-[var(--pp-muted)]">Operational layout approximation from current spot data.</p>
+                <h2 className="text-base font-bold text-[var(--pp-ink)]">{lotFilter} Live Status</h2>
+                <p className="text-sm text-[var(--pp-muted)]">Real-time visual layout indicating available and occupied spots.</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -136,13 +147,13 @@ const LotManagementPage: React.FC = () => {
           {parkingSpots.length > 0 ? (
             <SpatialHeatmap
               spots={parkingSpots}
-              mode="occupancy"
+              mode="live" // 🔥 เปลี่ยนจาก 'heatmap' เป็น 'live' เพื่อแสดง มืด/สว่าง
               selectedSpot={selectedSpot}
               onSelectSpot={handleSpotSelect}
             />
           ) : (
             <div className="p-4">
-              <EmptyState title="No parking spot data" description="Spot controls will appear when the heatmap endpoint returns spot-level occupancy." />
+              <EmptyState title="No parking spot data" description="Spot controls will appear when the live endpoint returns spot-level occupancy." />
             </div>
           )}
         </Panel>
@@ -151,19 +162,12 @@ const LotManagementPage: React.FC = () => {
           <Panel className="p-4">
             <h2 className="mb-3 text-base font-bold text-[var(--pp-ink)]">Zone Intelligence</h2>
             <div className="grid grid-cols-1 gap-3">
-              <div className="rounded-[var(--pp-radius)] border border-[var(--pp-line)] p-3">
+              <div className="rounded-[var(--pp-radius)] border border-[var(--pp-line)] p-3 bg-slate-50">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-[var(--pp-ink)]">CAMT_01 - Front</span>
-                  <StatusBadge tone={lotFilter === 'CAMT_01' ? 'info' : 'neutral'}>{lotFilter === 'CAMT_01' ? 'Selected' : 'Live'}</StatusBadge>
+                  <span className="font-semibold text-[var(--pp-ink)]">Live Camera Zone</span>
+                  <StatusBadge tone="info">Active</StatusBadge>
                 </div>
-                <p className="mt-2 text-sm text-[var(--pp-muted)]">{camt01Data?.total_spaces || 0} spaces total</p>
-              </div>
-              <div className="rounded-[var(--pp-radius)] border border-[var(--pp-line)] p-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-[var(--pp-ink)]">CAMT_02 - Rear</span>
-                  <StatusBadge tone={lotFilter === 'CAMT_02' ? 'info' : 'neutral'}>{lotFilter === 'CAMT_02' ? 'Selected' : 'Live'}</StatusBadge>
-                </div>
-                <p className="mt-2 text-sm text-[var(--pp-muted)]">{camt02Data?.total_spaces || 0} spaces total</p>
+                <p className="mt-2 text-sm text-[var(--pp-muted)]">{parkingData?.total_spaces || 0} spaces total being monitored by AI</p>
               </div>
             </div>
           </Panel>
@@ -183,9 +187,11 @@ const LotManagementPage: React.FC = () => {
               <EmptyState title="No events recorded" description="This spot has no returned event history for the selected lot." />
             ) : (
               <div className="max-h-72 space-y-2 overflow-y-auto">
-                {slotHistory.map((event) => (
-                  <div key={event.event_id} className="flex items-center justify-between gap-3 border-b border-[var(--pp-line)] py-2 text-sm last:border-b-0">
-                    <span className="font-semibold capitalize text-[var(--pp-ink)]">{event.state}</span>
+                {slotHistory.map((event: any, index: number) => (
+                  <div key={event.id || index} className="flex items-center justify-between gap-3 border-b border-[var(--pp-line)] py-2 text-sm last:border-b-0">
+                    <span className={`font-semibold capitalize ${event.is_occupied ? 'text-red-500' : 'text-green-500'}`}>
+                      {event.is_occupied ? 'Occupied' : 'Available'}
+                    </span>
                     <span className="flex items-center gap-1 text-[var(--pp-muted)]">
                       <Clock size={14} />
                       {new Date(event.timestamp).toLocaleString()}
