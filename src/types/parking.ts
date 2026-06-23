@@ -4,7 +4,7 @@ export interface ParkingSnapshot {
   available_spaces: number;
   total_spaces: number;
   occupied_spaces: number;
-  occupacy_rate?: number;
+  occupacy_rate?: number; // 👈 คงชื่อเดิมที่คุณมีไว้ เผื่อ backend ส่งมาชื่อนี้
 }
 
 export interface KpiSummary {
@@ -17,7 +17,7 @@ export interface KpiSummary {
 export interface ParkingSpot {
   id: string;
   status: 'available' | 'occupied' | 'offline';
-  heatRate?: number;
+  heatRate?: number; // 👈 ตรงนี้เพิ่มมาถูกแล้วครับ ทำให้มันเชื่อมกับ Heatmap ได้
 }
 
 export interface DeviceNodeHealth {
