@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Edit2, Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify';
 import axiosInstance from '../api/axios';
 import { Button, Dialog, EmptyState, PageHeader, Panel } from './ui';
 
@@ -25,6 +26,7 @@ const LicencePlateTable: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [total, setTotal] = useState(0);
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
@@ -37,6 +39,8 @@ const LicencePlateTable: React.FC = () => {
       params.append('limit', itemsPerPage.toString());
       const res = await axiosInstance.get(`/plates?${params.toString()}`);
       setData(res.data);
+      const headerTotal = Number(res.headers['x-total-count']);
+      setTotal(Number.isFinite(headerTotal) ? headerTotal : res.data.length);
     } catch (err) {
       console.error(err);
       setError('Unable to load license plate records.');
@@ -54,9 +58,11 @@ const LicencePlateTable: React.FC = () => {
     try {
       await axiosInstance.delete(`/plates/${targetId}`);
       setData((prev) => prev.filter((item) => item.id !== targetId));
+      setTotal((prev) => Math.max(0, prev - 1));
+      toast.success('License plate deleted.');
     } catch (err) {
       console.error('Delete failed:', err);
-      window.alert('Unable to delete license plate record.');
+      toast.error('Unable to delete license plate record.');
     } finally {
       setTargetId(null);
     }
@@ -87,13 +93,17 @@ const LicencePlateTable: React.FC = () => {
       setData((prev) => prev.map((item) => (item.id === editEntry.id ? res.data : item)));
       setEditEntry(null);
       setSelectedFile(null);
-    } catch (err) {
+      toast.success('License plate updated.');
+    } catch (err: any) {
       console.error('Update failed:', err);
-      window.alert('Unable to update license plate record.');
+      const detail = err?.response?.data?.detail;
+      toast.error(typeof detail === 'string' ? detail : 'Unable to update license plate record.');
     } finally {
       setSaving(false);
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
 
   return (
     <>
@@ -159,8 +169,8 @@ const LicencePlateTable: React.FC = () => {
 
       <div className="mt-4 flex items-center justify-end gap-2">
         <Button variant="secondary" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => page - 1)}>Previous</Button>
-        <span className="text-sm font-semibold text-[var(--pp-muted)]">Page {currentPage}</span>
-        <Button variant="secondary" disabled={data.length < itemsPerPage} onClick={() => setCurrentPage((page) => page + 1)}>Next</Button>
+        <span className="text-sm font-semibold text-[var(--pp-muted)]">Page {currentPage} of {totalPages}</span>
+        <Button variant="secondary" disabled={currentPage >= totalPages} onClick={() => setCurrentPage((page) => page + 1)}>Next</Button>
       </div>
 
       <Dialog
@@ -202,6 +212,8 @@ const LicencePlateTable: React.FC = () => {
           </label>
         </div>
       </Dialog>
+
+      <ToastContainer position="bottom-right" />
     </>
   );
 };

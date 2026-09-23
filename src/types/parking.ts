@@ -45,4 +45,15 @@ export interface AdminAccessRequest {
   requestDate: string;
 }
 
+export type PlateRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface LicensePlateRequest {
+  id: number;
+  plate_number: string;
+  plate_image_url: string;
+  status: PlateRequestStatus;
+  username: string;
+  user_email: string;
+}
+
 export type ReportExportFormat = 'csv' | 'pdf';

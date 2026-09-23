@@ -35,9 +35,10 @@ const AddLicencePlate: React.FC = () => {
       setName('');
       setPlateNumber('');
       setPhoto(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding license plate:', error);
-      toast.error('Failed to add license plate.');
+      const detail = error?.response?.data?.detail;
+      toast.error(typeof detail === 'string' ? detail : 'Failed to add license plate.');
     } finally {
       setSaving(false);
     }

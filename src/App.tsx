@@ -13,6 +13,7 @@ import Homepage from './pages/Home';
 import Login from './pages/Login';
 import AdminProfile from './pages/AdminProfilePage';
 import LicencePlate from './pages/LicencePlate';
+import PlateRequestsPage from './pages/PlateRequestsPage';
 import EntryRecordsPage from './pages/EntryRecordsPage';
 import Register from './components/Register';
 import AddAdminProfile from './components/AddAdminProfile';
@@ -45,6 +46,7 @@ const AppContent: React.FC = () => {
         <Route path="/admin-profile" element={<AdminProfile />} />
         <Route path="/add-admin" element={<AddAdminProfile />} />
         <Route path="/licence-plate" element={<LicencePlate />} />
+        <Route path="/plate-requests" element={<PlateRequestsPage />} />
         <Route path="/entry-records" element={<EntryRecordsPage />} />
         <Route path="/auth-requests" element={<AuthRequests />} />
         <Route path="/add-licence" element={<AddLicencePlate />} />
