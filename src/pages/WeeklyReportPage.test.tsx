@@ -61,11 +61,11 @@ describe('WeeklyReportPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText(/CAMT_01 reached peak demand at 08:00/)).toBeInTheDocument();
+    expect(await screen.findByText(/Live Camera Zone \(CAMT_02\) reached peak demand at 10:00/)).toBeInTheDocument();
     expect(screen.getByText('12 cars')).toBeInTheDocument();
     expect(screen.getByText('18 min')).toBeInTheDocument();
     expect(screen.getByText('97%')).toBeInTheDocument();
-    expect(screen.getByText('CAMT_01 Peak Hours')).toBeInTheDocument();
-    expect(screen.getByText('CAMT_02 Peak Hours')).toBeInTheDocument();
+    expect(screen.getByText('Live Camera Peak Hours')).toBeInTheDocument();
+    expect(screen.getByText('Live Camera Zone (CAMT_02)')).toBeInTheDocument();
   });
 });

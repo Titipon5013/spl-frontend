@@ -48,6 +48,13 @@ const AnalyticsPage: React.FC = () => {
       if (resCurrent.data) setParkingData(resCurrent.data);
       if (resHealth.data) setHealthData(resHealth.data);
       if (resKpis.data) setKpiData(resKpis.data);
+
+      // Per-request failures are swallowed so partial data can still render, but
+      // if every source failed the dashboard is effectively empty - surface it.
+      if (!resCurrent.data && !resHeatmap.data && !resHealth.data && !resKpis.data) {
+        setError('Dashboard data is temporarily unavailable. Check API connectivity and administrator access.');
+      }
+
       setLastSync(new Date().toLocaleTimeString());
 
       const spots = resHeatmap.data?.spots || [];

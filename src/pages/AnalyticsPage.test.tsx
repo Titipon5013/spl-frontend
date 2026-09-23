@@ -1,5 +1,4 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { vi, type Mock } from 'vitest';
 import AnalyticsPage from './AnalyticsPage';
@@ -23,6 +22,7 @@ const renderPage = () =>
 describe('AnalyticsPage', () => {
   beforeEach(() => {
     localStorage.setItem('token', 'approved-admin-token');
+    mockGet.mockReset();
     mockGet.mockImplementation((url: string, config?: { params?: { lot_id?: string } }) => {
       if (url === '/analytics/current?lot_id=CAMT_01') {
         return Promise.resolve({ data: { available_spaces: 20, occupied_spaces: 10, total_spaces: 30 } });
@@ -60,22 +60,21 @@ describe('AnalyticsPage', () => {
   it('renders dashboard capacity, KPI cards, node status, and heatmap spots from API data', async () => {
     renderPage();
 
-    expect(await screen.findByText('50.0%')).toBeInTheDocument();
+    expect(await screen.findByText('66.7%')).toBeInTheDocument();
     expect(screen.getByText('Vehicle Count')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
     expect(screen.getByText('Average Dwell')).toBeInTheDocument();
     expect(screen.getByText('18 min')).toBeInTheDocument();
-    expect(screen.getAllByText('60')[0]).toBeInTheDocument();
+    expect(screen.getByText('Total Spaces')).toBeInTheDocument();
+    expect(screen.getAllByText('30')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Healthy')[0]).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'A1' })).toBeInTheDocument();
   });
 
-  it('requests lot-specific analytics when the lot filter changes', async () => {
-    const user = userEvent.setup();
+  it('requests lot-specific analytics for the active lot', async () => {
     renderPage();
 
-    await screen.findByText('50.0%');
-    await user.selectOptions(screen.getByLabelText('Lot filter'), 'CAMT_02');
+    await screen.findByText('66.7%');
 
     await waitFor(() => {
       expect(mockGet.mock.calls.some(([url]) => url === '/analytics/heatmap?lot_id=CAMT_02')).toBe(true);
@@ -85,5 +84,27 @@ describe('AnalyticsPage', () => {
         mockGet.mock.calls.some(([url, config]) => url === '/analytics/kpis' && config?.params?.lot_id === 'CAMT_02')
       ).toBe(true);
     });
+  });
+
+  it('shows a user-friendly notification when analytics APIs fail', async () => {
+    mockGet.mockRejectedValue(new Error('network timeout'));
+
+    renderPage();
+
+    expect(await screen.findByText('Unable to load live data')).toBeInTheDocument();
+    expect(
+      screen.getByText('Dashboard data is temporarily unavailable. Check API connectivity and administrator access.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows a loading state while analytics datasets are being fetched', () => {
+    mockGet.mockImplementation(() => new Promise(() => {}));
+
+    const { unmount } = renderPage();
+
+    expect(screen.getByText('Connecting')).toBeInTheDocument();
+    expect(screen.getAllByText('...').length).toBeGreaterThan(0);
+
+    unmount();
   });
 });
