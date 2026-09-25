@@ -9,7 +9,6 @@ env:
   DOCKER_IMAGE_NAME: spl-frontend
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-  VITE_API_URL: ${{ vars.VITE_API_URL }}
 
 jobs:
   build-and-push:
@@ -46,8 +45,6 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          build-args: |
-            VITE_API_URL=${{ env.VITE_API_URL }}
           tags: |
             ${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
             ${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
