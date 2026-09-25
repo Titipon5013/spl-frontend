@@ -37,7 +37,6 @@ const LotManagementPage: React.FC = () => {
       const liveSpots = resCurrent.data?.spots || []; 
       const heatmapSpots = resHeatmap.data?.spots || []; 
 
-      // ดึงสถานะ Live (Occupied/Available) มาใช้เป็นหลัก
       const mergedSpots = heatmapSpots.map((heatSpot: any) => {
         const liveSpot = liveSpots.find((s: any) => s.spot_id === heatSpot.spot_id);
         return {
@@ -147,7 +146,7 @@ const LotManagementPage: React.FC = () => {
           {parkingSpots.length > 0 ? (
             <SpatialHeatmap
               spots={parkingSpots}
-              mode="live" // 🔥 เปลี่ยนจาก 'heatmap' เป็น 'live' เพื่อแสดง มืด/สว่าง
+              mode="live"
               selectedSpot={selectedSpot}
               onSelectSpot={handleSpotSelect}
             />

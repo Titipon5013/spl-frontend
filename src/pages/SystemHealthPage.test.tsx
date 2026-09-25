@@ -37,8 +37,6 @@ describe('SystemHealthPage', () => {
     expect(screen.getByText('3 / 4')).toBeInTheDocument();
     expect(screen.getByText('92%')).toBeInTheDocument();
     expect(screen.getByText('Hardware alert')).toBeInTheDocument();
-    // camera_2 reports offline from the AI pipeline but is forced online while the
-    // board is up; camera_3 is genuinely offline and drives the hardware alert.
     expect(screen.getByText('Parking Area 2 (AI) is online')).toBeInTheDocument();
     expect(screen.getByText('License Check 1 is offline')).toBeInTheDocument();
   });

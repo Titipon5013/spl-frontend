@@ -1,20 +1,18 @@
-# # Stage 1: Build the React application
-# FROM node:20-bullseye AS build
+FROM node:20-alpine AS build
 
-# WORKDIR /app
+WORKDIR /app
 
-# COPY package*.json ./
+COPY package*.json ./
+RUN npm ci
 
-# RUN npm install
+COPY . .
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+RUN test -n "$VITE_API_URL" && npm run build
 
-# COPY . .
-
-# RUN npm run build
-
-# # Stage 2: Serve the application using Nginx
 FROM nginx:alpine
 
-COPY /dist /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

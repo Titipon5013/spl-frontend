@@ -1,12 +1,11 @@
-/* Fixed sidebar */
 .sidebar {
   position: fixed;
   top: 0;
   left: 0;
   width: 240px;
-  height: 100vh;          /* full screen height */
+  height: 100vh;
   background-color: #3A6EA5;
-  overflow-y: auto;       /* scroll sidebar itself if menu too long */
+  overflow-y: auto;
   z-index: 1000;
 }
 
@@ -24,7 +23,6 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Mobile hamburger */
 .fab-toggle {
   position: fixed;
   left: 16px;
@@ -41,7 +39,6 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-/* Offcanvas styling */
 .offcanvas-menu .offcanvas-header {
   background: #2f5986;
   color: white;

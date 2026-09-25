@@ -8,7 +8,7 @@ import StatCard from '../components/StatCard';
 import { EmptyState, PageHeader, Panel, StatusBadge } from '../components/ui';
 
 const targetHours = [6, 8, 10, 12, 14, 16, 18, 20];
-const TOTAL_SPACES = 34; // อิงตามพิกัด 34 ช่องจอดจริงที่เราเซ็ตไว้ใน AI
+const TOTAL_SPACES = 34;
 
 const WeeklyReportPage: React.FC = () => {
   const [trends, setTrends] = useState<number[]>(Array(8).fill(0));
@@ -35,7 +35,6 @@ const WeeklyReportPage: React.FC = () => {
       const startDate = new Date();
       startDate.setDate(endDate.getDate() - 7);
 
-      // ดึงข้อมูล Trends, Health และ KPIs สำหรับ CAMT_02 ที่เดียว
       const [resTrends, resHealth, kpiRes] = await Promise.all([
         axiosInstance.get(`/analytics/trends?lot_id=CAMT_02&start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`).catch(() => ({ data: null })),
         axiosInstance.get('/analytics/health?lot_id=CAMT_02').catch(() => ({ data: null })),
@@ -77,7 +76,6 @@ const WeeklyReportPage: React.FC = () => {
     fetchWeeklyData();
   }, []);
 
-  // คำนวณค่าเฉลี่ยความหนาแน่นเพื่อแสดงใน Progress Bar
   const avgOccupancy = trends.reduce((a, b) => a + b, 0) / (trends.filter((v) => v > 0).length || 1);
 
   return (
@@ -85,7 +83,7 @@ const WeeklyReportPage: React.FC = () => {
       <PageHeader
         title="Weekly Performance Report"
         description="Seven-day utilization, peak demand, exports, and report-ready operational insight."
-        actions={<ExportReportTools lotId="CAMT_02" />} // ส่ง Lot ไปเผื่อ Export ด้วย
+        actions={<ExportReportTools lotId="CAMT_02" />}
       />
 
       {error && <div className="mb-5"><EmptyState title="Unable to load report" description={error} tone="warning" /></div>}
@@ -109,7 +107,6 @@ const WeeklyReportPage: React.FC = () => {
             <h2 className="text-base font-bold text-[var(--pp-ink)]">Zone Utilization (Average)</h2>
             <StatusBadge tone="warning">Last 7 days</StatusBadge>
           </div>
-          {/* แสดงแค่ CAMT_02 ตามความจริง */}
           <ProgressBar 
             label="Live Camera Zone (CAMT_02)" 
             current={Math.round((avgOccupancy / 100) * TOTAL_SPACES)} 
@@ -119,7 +116,6 @@ const WeeklyReportPage: React.FC = () => {
         </Panel>
 
         <div className="grid grid-cols-1 gap-4">
-          {/* แสดง Trend Panel เดียว */}
           <TrendPanel title="Live Camera Peak Hours" values={trends} />
         </div>
       </div>

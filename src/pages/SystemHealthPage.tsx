@@ -15,7 +15,6 @@ const SystemHealthPage: React.FC = () => {
   const fetchHealthData = async () => {
     try {
       setError(null);
-      // ดึงสถานะของระบบโดยรวม
       const response = await axiosInstance.get('/analytics/health?lot_id=CAMT_02');
       setHealthData(response.data);
     } catch (err) {
@@ -44,8 +43,6 @@ const SystemHealthPage: React.FC = () => {
     const node = healthData?.[camera.key as keyof DeviceHealth] as any;
     const apiStatus = node?.status?.toLowerCase();
     
-    // 💡 Override ลอจิก: ถ้าบอร์ดหลักออนไลน์ ให้แสดงกล้อง 2 (กล้อง AI จริงของเรา) ว่าออนไลน์ไปด้วย 
-    // เพื่อแก้ปัญหา run_ai.py ส่งข้อมูลฮาร์ดโค้ดว่า offline มา
     const isOnline = apiStatus === 'online' || (boardOnline && camera.key === 'camera_2');
 
     return {

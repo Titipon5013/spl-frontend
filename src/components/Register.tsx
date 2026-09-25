@@ -33,7 +33,6 @@ const Register: React.FC = () => {
 
       console.log(response.data);
       toast.success('Successfully registered! Awaiting admin approval.');
-      // รีเซ็ตฟอร์มหลังจากลงทะเบียนเสร็จ (Optional)
       setEmail('');
       setName('');
       setPlateNumber('');
@@ -47,7 +46,6 @@ const Register: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       
-      {/* Navbar สไตล์ ParkPilot (เหมือนหน้า Home) */}
       <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-[var(--pp-line)] bg-white px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="rounded-[var(--pp-radius)] bg-[var(--pp-blue-deep)] p-2">
@@ -68,13 +66,11 @@ const Register: React.FC = () => {
         </div>
       </nav>
 
-      {/* Main Form Content */}
       <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8 flex justify-center items-center">
         
         <div className="w-full max-w-4xl overflow-hidden rounded-[var(--pp-radius)] border border-[var(--pp-line)] bg-white">
           <div className="grid grid-cols-1 lg:grid-cols-2">
             
-            {/* Left Column: Form Inputs */}
             <div className="p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-gray-100">
               <div className="mb-8">
                 <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Vehicle Registration</h2>
@@ -85,7 +81,6 @@ const Register: React.FC = () => {
 
               <form id="register-form" onSubmit={handleSubmit} className="space-y-5">
                 
-                {/* Email Input */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
                   <div className="relative rounded-[var(--pp-radius)]">
@@ -103,7 +98,6 @@ const Register: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Name Input */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Full Name</label>
                   <div className="relative rounded-[var(--pp-radius)]">
@@ -121,7 +115,6 @@ const Register: React.FC = () => {
                   </div>
                 </div>
 
-                {/* License Plate Input */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">License Plate Number</label>
                   <div className="relative rounded-[var(--pp-radius)]">
@@ -142,7 +135,6 @@ const Register: React.FC = () => {
               </form>
             </div>
 
-            {/* Right Column: Photo Upload & Submit */}
             <div className="p-8 lg:p-12 bg-gray-50/50 flex flex-col justify-between">
               
               <div className="flex-1 mb-8">

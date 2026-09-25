@@ -9,7 +9,6 @@ import StatCard from '../components/StatCard';
 import { EmptyState, PageHeader, Panel, SelectField, StatusBadge, Toolbar } from '../components/ui';
 import type { DeviceHealth, KpiSummary, ParkingLotId, ParkingSnapshot, ParkingSpot } from '../types/parking';
 
-// 🛑 ซ่อน CAMT_01 ไว้ก่อน จนกว่าในอนาคตคุณจะรัน AI ครบทั้ง 2 มุม
 const lotOptions: Array<{ value: ParkingLotId; label: string }> = [
   { value: 'CAMT_02', label: 'CAMT Parking Lot (Live Camera)' },
 ];
@@ -21,7 +20,6 @@ const AnalyticsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
-  // 🛑 บังคับให้โหลดข้อมูล CAMT_02 เป็นหลัก
   const [lotFilter, setLotFilter] = useState<ParkingLotId>('CAMT_02');
   const [lastSync, setLastSync] = useState<string>('Not synced');
 
@@ -49,8 +47,6 @@ const AnalyticsPage: React.FC = () => {
       if (resHealth.data) setHealthData(resHealth.data);
       if (resKpis.data) setKpiData(resKpis.data);
 
-      // Per-request failures are swallowed so partial data can still render, but
-      // if every source failed the dashboard is effectively empty - surface it.
       if (!resCurrent.data && !resHeatmap.data && !resHealth.data && !resKpis.data) {
         setError('Dashboard data is temporarily unavailable. Check API connectivity and administrator access.');
       }
@@ -79,7 +75,6 @@ const AnalyticsPage: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [lotFilter]);
 
-  // 🛑 ให้ Global Stat อิงจากข้อมูลชุดเดียวเลย
   const globalTotalSpaces = parkingData?.total_spaces || 0;
   const globalOccupiedSpaces = parkingData?.occupied_spaces || 0;
   const globalAvailableSpaces = parkingData?.available_spaces || 0;
