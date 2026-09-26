@@ -2,10 +2,8 @@ import React, { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Landmark, Lock, User } from 'lucide-react';
-import axiosInstance from '../api/axios';
+import axiosInstance, { apiUrl } from '../api/axios';
 import { Button, Panel, StatusBadge } from '../components/ui';
-
-const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
