@@ -1,5 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, AlertTriangle, Car, Clock, Gauge, ParkingCircle, RefreshCcw } from 'lucide-react';
+import { 
+  Activity, 
+  AlertTriangle, 
+  Camera, 
+  Car, 
+  Clock, 
+  Gauge, 
+  Loader2, 
+  ParkingCircle, 
+  RefreshCcw, 
+  ScanEye, 
+  X 
+} from 'lucide-react';
 import axiosInstance from '../api/axios';
 import ExportReportTools from '../components/ExportReportTools';
 import MainLayout from '../components/MainLayout';
@@ -22,6 +34,12 @@ const AnalyticsPage: React.FC = () => {
   const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
   const [lotFilter, setLotFilter] = useState<ParkingLotId>('CAMT_02');
   const [lastSync, setLastSync] = useState<string>('Not synced');
+
+  // State สำหรับจัดการ Live Model Snapshot Modal
+  const [showModal, setShowModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(false);
 
   const fetchAllParkingData = async () => {
     try {
@@ -74,6 +92,37 @@ const AnalyticsPage: React.FC = () => {
     const intervalId = setInterval(fetchAllParkingData, 5000);
     return () => clearInterval(intervalId);
   }, [lotFilter]);
+
+  // ฟังก์ชันดึงภาพ Snapshot จาก AI โมเดล
+  const handleFetchSnapshot = async (endpoint: string, title: string) => {
+    setModalTitle(title);
+    setShowModal(true);
+    setLoadingImage(true);
+    if (imageSrc) {
+      URL.revokeObjectURL(imageSrc);
+      setImageSrc(null);
+    }
+
+    try {
+      const response = await axiosInstance.get(endpoint, {
+        responseType: 'blob',
+      });
+      const imageUrl = URL.createObjectURL(response.data);
+      setImageSrc(imageUrl);
+    } catch (err) {
+      console.error(`Error fetching inference image from ${endpoint}:`, err);
+    } finally {
+      setLoadingImage(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    if (imageSrc) {
+      URL.revokeObjectURL(imageSrc);
+      setImageSrc(null);
+    }
+  };
 
   const globalTotalSpaces = parkingData?.total_spaces || 0;
   const globalOccupiedSpaces = parkingData?.occupied_spaces || 0;
@@ -151,6 +200,7 @@ const AnalyticsPage: React.FC = () => {
             />
           </div>
 
+          {/* Panel: Lot Segments */}
           <Panel className="p-4">
             <h2 className="mb-4 text-base font-bold text-[var(--pp-ink)]">Lot Segments</h2>
             <ProgressBar
@@ -159,6 +209,53 @@ const AnalyticsPage: React.FC = () => {
               max={loading ? 1 : parkingData?.total_spaces || 1}
               statusLabel="Live API"
             />
+          </Panel>
+
+          {/* Panel: Live Model Inference Snapshots (อยู่ใต้ Lot Segments) */}
+          <Panel className="p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-bold text-[var(--pp-ink)]">AI Vision Feeds</h2>
+              <StatusBadge tone="info">Live Snapshot</StatusBadge>
+            </div>
+            <p className="mb-4 text-xs text-[var(--pp-muted)]">
+              Click to view inference frames and detected slot boundaries from on-site nodes.
+            </p>
+
+            <div className="grid grid-cols-1 gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleFetchSnapshot('/parking/inference', 'Camera 01 Inference (Main Entrance)')}
+                className="group flex w-full items-center justify-between rounded-lg border border-[var(--pp-line)] bg-[var(--pp-surface-subtle,rgba(0,0,0,0.02))] p-3 text-left transition hover:border-[var(--pp-primary,#2563eb)] hover:bg-white hover:shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--pp-primary-soft,#eff6ff)] text-[var(--pp-primary,#2563eb)] transition group-hover:bg-[var(--pp-primary,#2563eb)] group-hover:text-white">
+                    <Camera size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--pp-ink)]">Camera 01 (CAMT 01)</p>
+                    <p className="text-xs text-[var(--pp-muted)]">View live AI bounding boxes</p>
+                  </div>
+                </div>
+                <ScanEye size={16} className="text-[var(--pp-muted)] transition group-hover:text-[var(--pp-primary,#2563eb)]" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleFetchSnapshot('/parking/inference2', 'Camera 02 Inference (Secondary Lot)')}
+                className="group flex w-full items-center justify-between rounded-lg border border-[var(--pp-line)] bg-[var(--pp-surface-subtle,rgba(0,0,0,0.02))] p-3 text-left transition hover:border-[var(--pp-primary,#2563eb)] hover:bg-white hover:shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--pp-primary-soft,#eff6ff)] text-[var(--pp-primary,#2563eb)] transition group-hover:bg-[var(--pp-primary,#2563eb)] group-hover:text-white">
+                    <Camera size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--pp-ink)]">Camera 02 (CAMT 02)</p>
+                    <p className="text-xs text-[var(--pp-muted)]">View live AI bounding boxes</p>
+                  </div>
+                </div>
+                <ScanEye size={16} className="text-[var(--pp-muted)] transition group-hover:text-[var(--pp-primary,#2563eb)]" />
+              </button>
+            </div>
           </Panel>
         </div>
 
@@ -179,6 +276,58 @@ const AnalyticsPage: React.FC = () => {
           )}
         </Panel>
       </div>
+
+      {/* Tailwind Native Modal สำหรับแสดงผล Snapshot จาก AI */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-[var(--pp-line)] bg-white shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[var(--pp-line)] px-6 py-4">
+              <div className="flex items-center gap-2">
+                <ScanEye size={18} className="text-[var(--pp-primary,#2563eb)]" />
+                <h3 className="text-base font-bold text-[var(--pp-ink)]">{modalTitle}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="rounded-lg p-1.5 text-[var(--pp-muted)] transition hover:bg-gray-100 hover:text-[var(--pp-ink)]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex min-h-[340px] items-center justify-center bg-slate-950 p-4">
+              {loadingImage ? (
+                <div className="flex flex-col items-center gap-3 text-slate-400">
+                  <Loader2 size={32} className="animate-spin text-blue-500" />
+                  <span className="text-xs font-medium">Fetching inference snapshot from camera...</span>
+                </div>
+              ) : imageSrc ? (
+                <img
+                  src={imageSrc}
+                  alt="Inference Detection"
+                  className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain shadow-md"
+                />
+              ) : (
+                <p className="text-sm text-slate-500">No snapshot frame available at this moment.</p>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between border-t border-[var(--pp-line)] bg-gray-50/50 px-6 py-3.5">
+              <span className="text-xs text-[var(--pp-muted)]">Real-time object detection inference feed</span>
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="rounded-lg border border-[var(--pp-line)] bg-white px-4 py-2 text-xs font-semibold text-[var(--pp-ink)] shadow-sm transition hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 };

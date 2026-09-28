@@ -32,7 +32,10 @@ const SystemHealthPage: React.FC = () => {
   }, []);
 
   const isHealthy = healthData?.system_status?.toLowerCase() === 'healthy';
-  const boardOnline = healthData?.board?.status?.toLowerCase() === 'online';
+  
+  // ✅ แก้ไขจุดที่ 1: ให้รองรับทั้งสถานะ 'online' และ 'healthy' สำหรับบอร์ดหลัก
+  const boardStatus = healthData?.board?.status?.toLowerCase();
+  const boardOnline = boardStatus === 'online' || boardStatus === 'healthy';
 
   const cameraNodes = [
     { key: 'camera_1', label: 'Parking Area 1', path: 'parking/index.m3u8' },
@@ -43,12 +46,14 @@ const SystemHealthPage: React.FC = () => {
     const node = healthData?.[camera.key as keyof DeviceHealth] as any;
     const apiStatus = node?.status?.toLowerCase();
     
-    const isOnline = apiStatus === 'online' || (boardOnline && camera.key === 'camera_2');
+    // ✅ แก้ไขจุดที่ 2: ให้กล้องเป็นสีเขียวเมื่อสถานะคือ 'online' หรือ 'healthy'
+    const isOnline = apiStatus === 'online' || apiStatus === 'healthy' || (boardOnline && camera.key === 'camera_2');
 
     return {
       ...camera,
       online: isOnline,
-      status: isOnline ? 'online' : (apiStatus || 'offline'),
+      // ดึงข้อความสถานะมาแสดงผลตรงๆ เพื่อให้ป้ายขึ้นคำว่า "healthy" ได้ถูกต้อง
+      status: apiStatus ? apiStatus : (isOnline ? 'online' : 'offline'),
     };
   });
   
