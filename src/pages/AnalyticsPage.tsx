@@ -22,7 +22,7 @@ import { EmptyState, PageHeader, Panel, SelectField, StatusBadge, Toolbar } from
 import type { DeviceHealth, KpiSummary, ParkingLotId, ParkingSnapshot, ParkingSpot } from '../types/parking';
 
 const lotOptions: Array<{ value: ParkingLotId; label: string }> = [
-  { value: 'CAMT_02', label: 'CAMT Parking Lot (Live Camera)' },
+  { value: 'CAMT_01', label: 'CAMT Parking Lot (Live Camera)' },
 ];
 
 const AnalyticsPage: React.FC = () => {

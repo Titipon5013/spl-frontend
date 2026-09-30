@@ -16,7 +16,7 @@ const Home: React.FC = () => {
 
   const fetchSnapshot = async () => {
     try {
-      const response = await axiosInstance.get('/analytics/current?lot_id=CAMT_02');
+      const response = await axiosInstance.get('/analytics/current?lot_id=CAMT_01');
       setSnapshot(response.data);
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (error) {

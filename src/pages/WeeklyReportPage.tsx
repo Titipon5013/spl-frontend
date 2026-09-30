@@ -36,11 +36,11 @@ const WeeklyReportPage: React.FC = () => {
       startDate.setDate(endDate.getDate() - 7);
 
       const [resTrends, resHealth, kpiRes] = await Promise.all([
-        axiosInstance.get(`/analytics/trends?lot_id=CAMT_02&start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`).catch(() => ({ data: null })),
-        axiosInstance.get('/analytics/health?lot_id=CAMT_02').catch(() => ({ data: null })),
+        axiosInstance.get(`/analytics/trends?lot_id=CAMT_01&start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`).catch(() => ({ data: null })),
+        axiosInstance.get('/analytics/health?lot_id=CAMT_01').catch(() => ({ data: null })),
         axiosInstance.get('/analytics/kpis', {
           params: {
-            lot_id: 'CAMT_02',
+            lot_id: 'CAMT_01',
             start_date: startDate.toISOString(),
             end_date: endDate.toISOString(),
           },
@@ -51,7 +51,7 @@ const WeeklyReportPage: React.FC = () => {
         setTrends(mapTrendsToChart(resTrends.data.trends, TOTAL_SPACES));
         if (resTrends.data.peak_hour) {
           const timeOnly = resTrends.data.peak_hour.split(' ')[1];
-          setPeakHourInsight(`Live Camera Zone (CAMT_02) reached peak demand at ${timeOnly} this week. Utilization is tracked accurately for the ${TOTAL_SPACES} monitored spots.`);
+          setPeakHourInsight(`Live Camera Zone (CAMT_01) reached peak demand at ${timeOnly} this week. Utilization is tracked accurately for the ${TOTAL_SPACES} monitored spots.`);
         } else {
           setPeakHourInsight('No critical peak hour was detected this week. Utilization stayed inside normal operating bounds.');
         }
@@ -83,7 +83,7 @@ const WeeklyReportPage: React.FC = () => {
       <PageHeader
         title="Weekly Performance Report"
         description="Seven-day utilization, peak demand, exports, and report-ready operational insight."
-        actions={<ExportReportTools lotId="CAMT_02" />}
+        actions={<ExportReportTools lotId="CAMT_01" />}
       />
 
       {error && <div className="mb-5"><EmptyState title="Unable to load report" description={error} tone="warning" /></div>}
@@ -108,7 +108,7 @@ const WeeklyReportPage: React.FC = () => {
             <StatusBadge tone="warning">Last 7 days</StatusBadge>
           </div>
           <ProgressBar 
-            label="Live Camera Zone (CAMT_02)" 
+            label="Live Camera Zone (CAMT_01)" 
             current={Math.round((avgOccupancy / 100) * TOTAL_SPACES)} 
             max={TOTAL_SPACES} 
             statusLabel={avgOccupancy > 80 ? 'High' : 'Normal'} 
