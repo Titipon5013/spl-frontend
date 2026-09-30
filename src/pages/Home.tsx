@@ -3,21 +3,36 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, CarFront, CheckCircle2, Clock, Landmark, XCircle } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import { Button, MetricTile, Panel, StatusBadge } from '../components/ui';
+import SpatialHeatmap from '../components/SpatialHeatmap';
+import type { ParkingSnapshot, ParkingSpot } from '../types/parking';
 
-interface ParkingSnapshot {
-  available_spaces: number;
-  total_spaces: number;
+// ปรับ Interface ให้รองรับ array ของ spots ที่ส่งมาจาก Backend
+interface ExtendedParkingSnapshot extends ParkingSnapshot {
+  spots?: any[];
 }
 
 const Home: React.FC = () => {
-  const [snapshot, setSnapshot] = useState<ParkingSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<ExtendedParkingSnapshot | null>(null);
+  const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string>('Connecting...');
   const navigate = useNavigate();
 
   const fetchSnapshot = async () => {
     try {
-      const response = await axiosInstance.get('/analytics/current?lot_id=CAMT_01');
+      // ใช้ CAMT_02 เพื่อดึงข้อมูลจาก Live Camera Zone ที่เราจำลองไว้
+      const response = await axiosInstance.get('/analytics/current?lot_id=CAMT_02');
       setSnapshot(response.data);
+      
+      // แปลงข้อมูล spots จาก API ให้เป็นฟอร์แมตที่ SpatialHeatmap ต้องการ
+      const liveSpots = response.data?.spots || [];
+      if (liveSpots.length > 0) {
+        setParkingSpots(liveSpots.map((spot: any) => ({
+          id: spot.spot_id,
+          status: spot.is_occupied ? 'occupied' : 'available',
+          heatRate: spot.is_occupied ? 100 : 0,
+        })));
+      }
+      
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (error) {
       console.error('Error fetching parking snapshot:', error);
@@ -72,7 +87,7 @@ const Home: React.FC = () => {
           <MetricTile label="Total Spaces" value={snapshot ? snapshot.total_spaces : '-'} icon={<CarFront size={18} />} tone="info" />
         </div>
 
-        <Panel className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+        <Panel className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between mb-8">
           <div className="flex items-center gap-2 text-sm text-[var(--pp-muted)]">
             <Clock size={16} />
             <span>Last sync: {lastUpdated}</span>
@@ -82,6 +97,29 @@ const Home: React.FC = () => {
             <ArrowRight size={16} />
           </Button>
         </Panel>
+
+        {/* Live Parking Map Section */}
+        <Panel className="overflow-hidden">
+          <div className="border-b border-[var(--pp-line)] bg-white p-4">
+            <h2 className="text-base font-bold text-[var(--pp-ink)]">Live Parking Map</h2>
+            <p className="text-sm text-[var(--pp-muted)]">Real-time visual layout indicating available and occupied spots.</p>
+          </div>
+          
+          {parkingSpots.length > 0 ? (
+            <div className="pointer-events-none">
+              <SpatialHeatmap 
+                spots={parkingSpots} 
+                mode="live" 
+                // ตั้งใจไม่ส่ง selectedSpot และ onSelectSpot เพื่อให้เป็น View-only
+              />
+            </div>
+          ) : (
+            <div className="py-12 text-center text-[var(--pp-muted)]">
+              Map data is currently unavailable. Waiting for sensor connection...
+            </div>
+          )}
+        </Panel>
+
       </main>
     </div>
   );
