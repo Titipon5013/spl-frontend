@@ -6,13 +6,20 @@ the backend can validate the approved-account stream cookie on every request.
 The legacy `/infer-live/` path returns `404` until it has an authenticated
 backend route.
 
-The GitHub Actions workflow builds and publishes
-`time5013/spl-reverseproxy:dev` after changes merge into `dev`. It also publishes
-a commit-SHA tag. For the Portainer `smart-parking-lot` stack, update the
-`reverseproxy` service image to:
+The GitHub Actions workflow validates that the image builds. After merging the
+change, publish a versioned image from the repository root:
+
+```sh
+docker login
+docker build -t time5013/spl-reverseproxy:v1 ./reverseproxy
+docker push time5013/spl-reverseproxy:v1
+```
+
+Then update the Portainer `smart-parking-lot` stack's `reverseproxy` service
+image to:
 
 ```yaml
-image: time5013/spl-reverseproxy:dev
+image: time5013/spl-reverseproxy:v1
 ```
 
 Then update the stack with image pull enabled. The current stack config has no
