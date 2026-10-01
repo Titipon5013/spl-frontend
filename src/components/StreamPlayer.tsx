@@ -45,6 +45,13 @@ const StreamPlayer: React.FC<StreamPlayerProps> = ({
         enableWorker: false,
         lowLatencyMode: true,
         backBufferLength: 90,
+        // 🔒 ดึงโค้ดแนบ Token ใส่ Header มาใส่ตรงนี้
+        xhrSetup: function (xhr, url) {
+          const token = localStorage.getItem('token');
+          if (token) {
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+          }
+        },
       });
       hls.loadSource(src);
       hls.attachMedia(video);
@@ -62,7 +69,15 @@ const StreamPlayer: React.FC<StreamPlayerProps> = ({
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = src;
+      // 🔒 ดึงโค้ดแนบ Token ใส่ URL (สำหรับ Safari/iOS) มาใส่ตรงนี้
+      const token = localStorage.getItem('token');
+      if (token) {
+        const separator = src.includes('?') ? '&' : '?';
+        video.src = `${src}${separator}token=${token}`;
+      } else {
+        video.src = src;
+      }
+      
       video.addEventListener('loadedmetadata', markReady);
       video.addEventListener('error', markError);
     } else {
