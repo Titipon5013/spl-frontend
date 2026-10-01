@@ -6,8 +6,8 @@ the backend can validate the approved-account stream cookie on every request.
 The legacy `/infer-live/` path returns `404` until it has an authenticated
 backend route.
 
-The GitHub Actions workflow validates that the image builds. After merging the
-change, publish a versioned image from the repository root:
+After merging the change, build and publish a versioned image manually from the
+repository root:
 
 ```sh
 docker login
