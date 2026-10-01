@@ -45,12 +45,8 @@ const StreamPlayer: React.FC<StreamPlayerProps> = ({
         enableWorker: false,
         lowLatencyMode: true,
         backBufferLength: 90,
-        // 🔒 ดึงโค้ดแนบ Token ใส่ Header มาใส่ตรงนี้
-        xhrSetup: function (xhr, url) {
-          const token = localStorage.getItem('token');
-          if (token) {
-            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-          }
+        xhrSetup: (xhr) => {
+          xhr.withCredentials = true;
         },
       });
       hls.loadSource(src);
@@ -69,15 +65,7 @@ const StreamPlayer: React.FC<StreamPlayerProps> = ({
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // 🔒 ดึงโค้ดแนบ Token ใส่ URL (สำหรับ Safari/iOS) มาใส่ตรงนี้
-      const token = localStorage.getItem('token');
-      if (token) {
-        const separator = src.includes('?') ? '&' : '?';
-        video.src = `${src}${separator}token=${token}`;
-      } else {
-        video.src = src;
-      }
-      
+      video.src = src;
       video.addEventListener('loadedmetadata', markReady);
       video.addEventListener('error', markError);
     } else {
@@ -98,6 +86,7 @@ const StreamPlayer: React.FC<StreamPlayerProps> = ({
     <div className="relative h-full w-full bg-slate-950">
       <video
         ref={videoRef}
+        crossOrigin="use-credentials"
         className={className}
         onClick={onClick}
         muted={muted}

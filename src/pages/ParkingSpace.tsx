@@ -6,6 +6,7 @@ import MainLayout from '../components/MainLayout';
 import OpenGateButton from '../components/OpenGateButton';
 import StreamPlayer from '../components/StreamPlayer';
 import { Button, Dialog, PageHeader, Panel, StatusBadge, Toolbar } from '../components/ui';
+import axiosInstance from '../api/axios';
 
 const streams = ['parking', 'parking2', 'license', 'license1'];
 const streamTitles = ['Parking Area 1', 'Parking Area 2', 'License Check 1', 'License Check 2'];
@@ -14,6 +15,28 @@ const ParkingSpace: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedStream, setSelectedStream] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<string>('N/A');
+  const [streamSession, setStreamSession] = useState<'loading' | 'ready' | 'error'>('loading');
+
+  useEffect(() => {
+    let active = true;
+    let refreshTimer: number | undefined;
+
+    const establishSession = async () => {
+      try {
+        await axiosInstance.post('/parking/stream-session', undefined, { withCredentials: true });
+        if (active) setStreamSession('ready');
+      } catch {
+        if (active) setStreamSession('error');
+      }
+    };
+
+    establishSession();
+    refreshTimer = window.setInterval(establishSession, 4 * 60 * 1000);
+    return () => {
+      active = false;
+      if (refreshTimer !== undefined) window.clearInterval(refreshTimer);
+    };
+  }, []);
 
   useEffect(() => {
     setLastUpdated(new Date().toLocaleString());
@@ -47,7 +70,18 @@ const ParkingSpace: React.FC = () => {
         <OpenGateButton />
       </Toolbar>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {streamSession === 'loading' && (
+        <p className="rounded-[var(--pp-radius)] border border-[var(--pp-line)] bg-white p-5 text-sm text-[var(--pp-muted)]">
+          Establishing secure camera session...
+        </p>
+      )}
+      {streamSession === 'error' && (
+        <p role="alert" className="rounded-[var(--pp-radius)] border border-red-200 bg-red-50 p-5 text-sm text-red-800">
+          Camera access is unavailable. Sign in with an approved account and reload this page.
+        </p>
+      )}
+
+      {streamSession === 'ready' && <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {streams.map((stream, index) => (
           <Panel key={stream} className="overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--pp-line)] bg-white px-4 py-3">
@@ -78,7 +112,7 @@ const ParkingSpace: React.FC = () => {
             </div>
           </Panel>
         ))}
-      </div>
+      </div>}
 
       <Dialog
         open={showModal}
@@ -93,12 +127,14 @@ const ParkingSpace: React.FC = () => {
         }
       >
         <div className="aspect-video w-full bg-slate-950">
-          <StreamPlayer
-            src={`/${streams[selectedStream]}/index.m3u8`}
-            autoPlay
-            controls
-            className="h-full w-full object-contain"
-          />
+          {streamSession === 'ready' && (
+            <StreamPlayer
+              src={`/${streams[selectedStream]}/index.m3u8`}
+              autoPlay
+              controls
+              className="h-full w-full object-contain"
+            />
+          )}
         </div>
       </Dialog>
 

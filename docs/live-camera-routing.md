@@ -9,21 +9,28 @@ The Live Camera page loads HLS streams from same-origin paths:
 
 ## Local Development
 
-Local Vite development runs on `localhost:5173`, so these paths do not exist unless Vite proxies them. The dev server currently proxies the stream paths to:
+Local Vite development runs on `localhost:5173`. Vite proxies `/api/*` and all
+four stream prefixes to the local backend (`http://127.0.0.1:8000` by default).
+This keeps the API and native HLS requests on the same browser origin so the
+HttpOnly stream cookie works in both hls.js and Safari/iOS native playback.
+Override the target with `VITE_BACKEND_PROXY_TARGET` when the backend listens
+elsewhere.
 
-```text
-https://spl.camt.cmu.ac.th
-```
-
-This proxy is only for local development. It is not included in the production build.
+These Vite proxy rules are development-only and are not included in the
+production build.
 
 ## Production Question
 
-Before deploying a new frontend build to the CAMT server, confirm how production routing is configured:
+Before deploying a new frontend build to the CAMT server, route all stream
+prefixes to the backend's protected stream proxy (see
+`spl-backend/docs/camera-stream-proxy-handoff.md`). Confirm the production API
+and frontend use the same HTTPS hostname so the Secure stream cookie is sent
+with native HLS requests. Also confirm:
 
-- Does the server already proxy `/parking/*`, `/parking2/*`, `/license/*`, and `/license1/*` to the camera or HLS source?
 - Will deployment replace only static frontend files from `dist/`, or will it also replace nginx/openresty configuration?
 - What internal machine, port, or service owns the HLS streams?
 - Does viewing the streams require CAMT network access, VPN, or server-side access only?
 
-Recommended deployment approach: replace only the frontend static files until the production reverse proxy configuration is understood.
+The backend stream proxy reads `EDGE_BASE_URL` (defaults to the current camera
+edge host) and supports all four frontend stream prefixes. Keep the edge host
+inaccessible to public clients where practical.
