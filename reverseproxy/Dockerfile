@@ -1,3 +1,4 @@
-FROM nginxproxy/nginx-proxy:1.8.0
+FROM winnkyaw/nginx-proxy@sha256:f11945c9ede1568a757f444b907baaf5320db3e0898a4eae13e71b618006656f
 
 COPY default_location /etc/nginx/vhost.d/default_location
+COPY legacy_default_location /usr/local/share/nginx-proxy/legacy_default_location

@@ -1,4 +1,4 @@
-# Route every HLS request through the backend's approved-account cookie check.
+# Route each HLS request through the backend's approved-account cookie check.
 location ~ ^/(parking|parking2|license|license1)(/|$) {
     proxy_pass http://backend:8000;
     proxy_http_version 1.1;
@@ -14,7 +14,8 @@ location ~ ^/(parking|parking2|license|license1)(/|$) {
     add_header Cache-Control "private, no-store" always;
 }
 
-# The backend has no authenticated route for this legacy edge path.
+# Keep the former direct-to-edge route archived in this image. Do not enable it
+# until it has equivalent account and stream-cookie checks.
 location ~ ^/infer-live(/|$) {
     add_header Cache-Control "private, no-store" always;
     return 404;
