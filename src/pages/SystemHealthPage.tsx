@@ -15,7 +15,7 @@ const SystemHealthPage: React.FC = () => {
   const fetchHealthData = async () => {
     try {
       setError(null);
-      const response = await axiosInstance.get('/analytics/health?lot_id=CAMT_02');
+      const response = await axiosInstance.get('/analytics/health?lot_id=CAMT_01');
       setHealthData(response.data);
     } catch (err) {
       console.error('Error fetching health data:', err);
