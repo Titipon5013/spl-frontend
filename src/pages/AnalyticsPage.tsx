@@ -32,7 +32,7 @@ const AnalyticsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
-  const [lotFilter, setLotFilter] = useState<ParkingLotId>('CAMT_02');
+  const [lotFilter, setLotFilter] = useState<ParkingLotId>('CAMT_01');
   const [lastSync, setLastSync] = useState<string>('Not synced');
 
   // State สำหรับจัดการ Live Model Snapshot Modal

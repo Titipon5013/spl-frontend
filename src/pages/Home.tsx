@@ -19,8 +19,8 @@ const Home: React.FC = () => {
 
   const fetchSnapshot = async () => {
     try {
-      // ใช้ CAMT_02 เพื่อดึงข้อมูลจาก Live Camera Zone ที่เราจำลองไว้
-      const response = await axiosInstance.get('/analytics/current?lot_id=CAMT_02');
+      // ใช้ CAMT_01 เพื่อดึงข้อมูลจาก Live Camera Zone ที่เราจำลองไว้
+      const response = await axiosInstance.get('/analytics/current?lot_id=CAMT_01');
       setSnapshot(response.data);
       
       // แปลงข้อมูล spots จาก API ให้เป็นฟอร์แมตที่ SpatialHeatmap ต้องการ

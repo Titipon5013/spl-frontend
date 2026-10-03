@@ -8,7 +8,7 @@ import { Button, EmptyState, PageHeader, Panel, SelectField, StatusBadge, Toolba
 import type { ParkingLotId, ParkingSnapshot, ParkingSpot } from '../types/parking';
 
 const lotOptions: Array<{ value: ParkingLotId; label: string }> = [
-  { value: 'CAMT_02', label: 'CAMT Parking Lot (Live Camera)' },
+  { value: 'CAMT_01', label: 'CAMT Parking Lot (Live Camera)' },
 ];
 
 const LotManagementPage: React.FC = () => {
@@ -19,7 +19,7 @@ const LotManagementPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedSpot, setSelectedSpot] = useState<string | null>(null);
   const [slotHistory, setSlotHistory] = useState<any[]>([]);
-  const [lotFilter, setLotFilter] = useState<ParkingLotId>('CAMT_02');
+  const [lotFilter, setLotFilter] = useState<ParkingLotId>('CAMT_01');
   const [lastSync, setLastSync] = useState<string>('Not synced');
 
   const fetchParkingData = async () => {
