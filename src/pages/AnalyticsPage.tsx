@@ -71,14 +71,37 @@ const AnalyticsPage: React.FC = () => {
 
       setLastSync(new Date().toLocaleTimeString());
 
-      const spots = resHeatmap.data?.spots || [];
-      setParkingSpots(
-        spots.map((spot: any) => ({
-          id: spot.spot_id,
-          status: spot.occupancy_percentage > 50 ? 'occupied' : 'available',
-          heatRate: spot.occupancy_percentage || 0,
-        }))
-      );
+      const liveSpots = resCurrent.data?.spots || [];
+      const heatmapSpots = resHeatmap.data?.spots || [];
+
+      // 🟢 ใช้ liveSpots เป็นแกนหลักเพื่อรักษาระเบียบช่องจอดให้ Layout ออกมาสวยงาม
+      if (liveSpots.length > 0) {
+        const mergedSpots = liveSpots.map((liveSpot: any) => {
+          const heatSpot = heatmapSpots.find((h: any) => h.spot_id === liveSpot.spot_id);
+          return {
+            id: liveSpot.spot_id,
+            status: liveSpot.is_occupied ? 'occupied' : 'available',
+            heatRate: heatSpot?.occupancy_percentage || 0,
+          };
+        });
+        setParkingSpots(mergedSpots);
+      } else if (heatmapSpots.length > 0) {
+        // Fallback: เรียงลำดับข้อมูล Heatmap เองถ้าไม่มีข้อมูล live
+        const sortedHeatmap = heatmapSpots.map((heatSpot: any) => ({
+          id: heatSpot.spot_id,
+          status: heatSpot.occupancy_percentage > 50 ? 'occupied' : 'available',
+          heatRate: heatSpot.occupancy_percentage || 0,
+        })).sort((a: any, b: any) => {
+          const matchA = a.id.match(/^([A-Z]+)(\d+)$/);
+          const matchB = b.id.match(/^([A-Z]+)(\d+)$/);
+          if (matchA && matchB) {
+            if (matchA[1] === matchB[1]) return parseInt(matchA[2], 10) - parseInt(matchB[2], 10);
+            return matchA[1].localeCompare(matchB[1]);
+          }
+          return a.id.localeCompare(b.id);
+        });
+        setParkingSpots(sortedHeatmap);
+      }
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Dashboard data is temporarily unavailable. Check API connectivity and administrator access.');
@@ -211,7 +234,7 @@ const AnalyticsPage: React.FC = () => {
             />
           </Panel>
 
-          {/* Panel: Live Model Inference Snapshots (อยู่ใต้ Lot Segments) */}
+          {/* Panel: Live Model Inference Snapshots */}
           <Panel className="p-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-base font-bold text-[var(--pp-ink)]">AI Vision Feeds</h2>

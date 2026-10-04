@@ -37,23 +37,37 @@ const LotManagementPage: React.FC = () => {
       const liveSpots = resCurrent.data?.spots || []; 
       const heatmapSpots = resHeatmap.data?.spots || []; 
 
-      const mergedSpots = heatmapSpots.map((heatSpot: any) => {
-        const liveSpot = liveSpots.find((s: any) => s.spot_id === heatSpot.spot_id);
-        return {
-          id: heatSpot.spot_id,
-          status: liveSpot?.is_occupied ? 'occupied' : 'available',
-          heatRate: heatSpot.occupancy_percentage || 0,
-        };
-      });
+      // 🟢 ใช้ liveSpots เป็นแกนหลักเพื่อรักษาระเบียบช่องจอด (A1->A10, C1->C10, B01->B14)
+      if (liveSpots.length > 0) {
+        const mergedSpots = liveSpots.map((liveSpot: any) => {
+          // หาค่าเปอร์เซ็นต์ความร้อนจาก heatmap API 
+          const heatSpot = heatmapSpots.find((h: any) => h.spot_id === liveSpot.spot_id);
+          
+          return {
+            id: liveSpot.spot_id,
+            status: liveSpot.is_occupied ? 'occupied' : 'available',
+            heatRate: heatSpot?.occupancy_percentage || (liveSpot.is_occupied ? 100 : 0),
+          };
+        });
 
-      if (mergedSpots.length > 0) {
         setParkingSpots(mergedSpots);
-      } else if (liveSpots.length > 0) {
-        setParkingSpots(liveSpots.map((spot: any) => ({
-          id: spot.spot_id,
-          status: spot.is_occupied ? 'occupied' : 'available',
-          heatRate: spot.is_occupied ? 100 : 0, 
-        })));
+      } else if (heatmapSpots.length > 0) {
+        // Fallback: กรณี live API พัง แต่ heatmap ยังตอบกลับ (จัดเรียงใหม่ด้วย Sort)
+        const sortedHeatmap = heatmapSpots.map((heatSpot: any) => ({
+          id: heatSpot.spot_id,
+          status: 'available', // ไม่รู้สถานะปัจจุบัน ให้ถือว่าว่าง
+          heatRate: heatSpot.occupancy_percentage || 0,
+        })).sort((a: any, b: any) => {
+          const matchA = a.id.match(/^([A-Z]+)(\d+)$/);
+          const matchB = b.id.match(/^([A-Z]+)(\d+)$/);
+          if (matchA && matchB) {
+            if (matchA[1] === matchB[1]) return parseInt(matchA[2], 10) - parseInt(matchB[2], 10);
+            return matchA[1].localeCompare(matchB[1]);
+          }
+          return a.id.localeCompare(b.id);
+        });
+
+        setParkingSpots(sortedHeatmap);
       }
 
     } catch (err) {
