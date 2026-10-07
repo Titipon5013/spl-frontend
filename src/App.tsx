@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AnalyticsPage from './pages/AnalyticsPage';
 import LotManagementPage from './pages/LotManagementPage';
 import SystemHealthPage from './pages/SystemHealthPage';
-import GateCountsPage from './pages/GateCountsPage';
 import WeeklyReportPage from './pages/WeeklyReportPage';
 import ParkingSpace from './pages/ParkingSpace'; 
 
@@ -35,7 +34,6 @@ const AppContent: React.FC = () => {
         <Route path="/parking-space" element={<ParkingSpace />} />
         
         <Route path="/system-health" element={<SystemHealthPage />} />
-        <Route path="/gate-counts" element={<GateCountsPage />} />
         <Route path="/reports" element={<WeeklyReportPage />} />
 
         <Route path="/admin-profile" element={<AdminProfile />} />
