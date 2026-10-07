@@ -26,7 +26,14 @@ axiosInstance.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+
+      // Let the login page show its own invalid-credentials message instead
+      // of reloading itself and clearing that message.
+      const requestPath = error.config?.url?.split('?')[0].replace(/\/+$/, '');
+      const isLoginRequest = requestPath?.endsWith('/login');
+      if (!isLoginRequest) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
