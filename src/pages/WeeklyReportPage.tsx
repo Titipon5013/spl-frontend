@@ -1,14 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Clock, Sparkles, TrendingUp, Users } from 'lucide-react';
+import { AlertTriangle, Calendar, Clock, DoorOpen, Sparkles, TrendingUp, Users } from 'lucide-react';
 import axiosInstance from '../api/axios';
 import ExportReportTools from '../components/ExportReportTools';
 import MainLayout from '../components/MainLayout';
 import ProgressBar from '../components/ProgressBar';
 import StatCard from '../components/StatCard';
-import { EmptyState, PageHeader, Panel, StatusBadge } from '../components/ui';
+import { EmptyState, MetricTile, PageHeader, Panel, StatusBadge } from '../components/ui';
 
 const targetHours = [6, 8, 10, 12, 14, 16, 18, 20];
 const TOTAL_SPACES = 34;
+
+interface GateWeeklySummary {
+  open_count: number;
+  close_count: number;
+  peak_hours?: {
+    total?: { hour: string; count: number } | null;
+  };
+}
 
 const WeeklyReportPage: React.FC = () => {
   const [trends, setTrends] = useState<number[]>(Array(8).fill(0));
@@ -16,6 +24,7 @@ const WeeklyReportPage: React.FC = () => {
   const [uptime, setUptime] = useState<number>(0);
   const [avgEntries, setAvgEntries] = useState<number | null>(null);
   const [avgTurnover, setAvgTurnover] = useState<number | null>(null);
+  const [gateWeekly, setGateWeekly] = useState<GateWeeklySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +44,7 @@ const WeeklyReportPage: React.FC = () => {
       const startDate = new Date();
       startDate.setDate(endDate.getDate() - 7);
 
-      const [resTrends, resHealth, kpiRes] = await Promise.all([
+      const [resTrends, resHealth, kpiRes, gateWeeklyRes] = await Promise.all([
         axiosInstance.get(`/analytics/trends?lot_id=CAMT_01&start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`).catch(() => ({ data: null })),
         axiosInstance.get('/analytics/health?lot_id=CAMT_01').catch(() => ({ data: null })),
         axiosInstance.get('/analytics/kpis', {
@@ -44,7 +53,8 @@ const WeeklyReportPage: React.FC = () => {
             start_date: startDate.toISOString(),
             end_date: endDate.toISOString(),
           },
-        }).catch(() => ({ data: null }))
+        }).catch(() => ({ data: null })),
+        axiosInstance.get<GateWeeklySummary>('/gate/counts/weekly').catch(() => ({ data: null })),
       ]);
 
       if (resTrends.data?.trends) {
@@ -63,6 +73,7 @@ const WeeklyReportPage: React.FC = () => {
         setAvgEntries(kpiRes.data.vehicle_count);
         setAvgTurnover(kpiRes.data.avg_dwell_time_minutes);
       }
+      if (gateWeeklyRes.data) setGateWeekly(gateWeeklyRes.data);
     } catch (err) {
       console.error('Error fetching weekly data:', err);
       setError('Weekly report data is unavailable right now.');
@@ -132,6 +143,32 @@ const WeeklyReportPage: React.FC = () => {
           trendUp={uptime > 90}
         />
       </div>
+
+      <Panel className="mt-4 p-4">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-[var(--pp-ink)]">Gate Activity This Week</h2>
+            <p className="mt-1 text-sm text-[var(--pp-muted)]">Weekly gate totals and the busiest gate hour.</p>
+          </div>
+          <StatusBadge tone="info">Monday-Sunday</StatusBadge>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <MetricTile
+            label="Weekly Gate Count"
+            value={loading ? '...' : gateWeekly ? gateWeekly.open_count + gateWeekly.close_count : 'Pending'}
+            icon={<DoorOpen size={18} />}
+            tone="info"
+            meta={gateWeekly ? `${gateWeekly.open_count} opens · ${gateWeekly.close_count} closes` : 'Gate count API'}
+          />
+          <MetricTile
+            label="Gate Peak Hour"
+            value={loading ? '...' : gateWeekly?.peak_hours?.total?.hour || '—'}
+            icon={<Calendar size={18} />}
+            tone="warning"
+            meta={gateWeekly?.peak_hours?.total ? `${gateWeekly.peak_hours.total.count} events` : 'No gate events recorded'}
+          />
+        </div>
+      </Panel>
     </MainLayout>
   );
 };

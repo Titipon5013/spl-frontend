@@ -28,6 +28,7 @@ export const navigationItems: NavigationItem[] = [
   { name: 'Licence Plate', path: '/licence-plate', icon: <IdCard size={18} />, group: 'records' },
   { name: 'Plate Requests', path: '/plate-requests', icon: <ClipboardCheck size={18} />, group: 'records' },
   { name: 'Entry Records', path: '/entry-records', icon: <BookOpen size={18} />, group: 'records' },
+  { name: 'Gate Records', path: '/gate-records', icon: <Activity size={18} />, group: 'records' },
   { name: 'Access Requests', path: '/auth-requests', icon: <UserCheck size={18} />, group: 'access' },
   { name: 'Admin Profile', path: '/admin-profile', icon: <Shield size={18} />, group: 'access' },
 ];
