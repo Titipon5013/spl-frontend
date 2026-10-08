@@ -1,5 +1,12 @@
 # React + Vite
 
+> **Branch `pree-dev` — paper submission snapshot.**
+> This branch freezes the web dashboard frontend (React + Vite) as described in the MDPI *Sensors* paper
+> "Multi-Camera Smart Parking on Orange Pi and Jetson" (Thiengburanathum et al.).
+> It was branched from `dev` on 2026-10-08, matching the deployed images
+> `time5013/spl-frontend:v14`. Changes made for the paper are merged back to `dev` by pull request.
+> Ongoing development continues on `dev`.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 urrently, two official plugins are available:
